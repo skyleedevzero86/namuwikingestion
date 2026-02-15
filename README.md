@@ -337,3 +337,5 @@ docker-compose -f docker-compose.pgvector.yml up -d pgvector
 | GET | `/api/stats` | DB 적재 문서 수 |
 
 데이터셋이 크므로(약 3GB parquet, 867k 행) 첫 실행 시 디스크·네트워크·임베딩 API 시간을 고려하세요.
+
+출처: [pgvector와 textsearch_ko를 결합한 한국어 하이브리드 검색 환경](https://velog.io/@sleekydevzero86/postgresql-korean-fts-pgvector)
