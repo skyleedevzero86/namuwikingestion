@@ -4,7 +4,10 @@
 <img width="939" height="532" alt="image" src="https://github.com/user-attachments/assets/b0d5ae49-ed96-4be2-8799-d66d82ceaf3f" />
 
 <br/>
-Kotlin + Spring Boot 기반 **나무위키 데이터셋** 적재 서비스입니다. Hugging Face의 `heegyu/namuwiki` 데이터를 받아 임베딩을 생성한 뒤 PostgreSQL **pgvector**에 저장하며, Thymeleaf 대시보드에서 실시간 진행 상황을 확인할 수 있습니다.
+Kotlin + Spring Boot 기반 **나무위키 데이터셋** 적재 서비스입니다. <br/>
+Hugging Face의 `heegyu/namuwiki` 데이터를 받아 임베딩을 생성한 뒤 PostgreSQL **pgvector**에 저장하며, Thymeleaf 대시보드에서 실시간 진행 상황을 확인할 수 있습니다.<br/>
+<img width="809" height="545" alt="image" src="https://github.com/user-attachments/assets/8d74a7c8-42fc-4249-8703-87a30ae2b354" />
+<br/>
 
 ---
 
