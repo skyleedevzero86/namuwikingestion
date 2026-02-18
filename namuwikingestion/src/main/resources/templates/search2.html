@@ -110,7 +110,7 @@
     <article class="result-card" th:each="r : ${results}">
         <div class="result-card-header">
             <h2 class="result-card-title" th:text="${r.title}">제목</h2>
-            <span class="similarity-badge">Similarity: <span th:text="${#numbers.formatDecimal(r.similarityPercent, 1, 1)}">0</span>%</span>
+            <span class="similarity-badge">Similarity: <span th:text="${r.similarityPercent != null and !T(java.lang.Double).isNaN(r.similarityPercent) ? #numbers.formatDecimal(r.similarityPercent, 1, 1) : '0'}">0</span>%</span>
         </div>
         <div class="result-card-content" th:text="${r.contentSnippet}">내용</div>
     </article>

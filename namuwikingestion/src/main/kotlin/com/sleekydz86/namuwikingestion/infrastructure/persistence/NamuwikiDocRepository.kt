@@ -90,7 +90,8 @@ class NamuwikiDocRepository(
     fun getFullTextSearchSqlForDisplay(limit: Int, config: String, queryForDisplay: String?): String {
         val escaped = queryForDisplay?.replace("'", "''") ?: "?"
         val sql = fullTextSearchSql(limit, config)
-        val values = listOf(config, config, "'$escaped'", config, config, "'$escaped'")
+        val configQuoted = "'$config'"
+        val values = listOf(configQuoted, configQuoted, "'$escaped'", configQuoted, configQuoted, "'$escaped'")
         val parts = sql.split("?")
         return parts.foldIndexed(StringBuilder()) { i, acc, p ->
             acc.append(p).append(values.getOrNull(i) ?: "")
@@ -102,6 +103,92 @@ class NamuwikiDocRepository(
         val sql = "EXPLAIN (FORMAT JSON)\n" + fullTextSearchSql(limit, config)
         return try {
             val list = jdbc.query(sql, { rs, _ -> rs.getString(1) }, config, config, query, config, config, query)
+            list?.firstOrNull() ?: "[]"
+        } catch (_: Exception) {
+            "[]"
+        }
+    }
+
+    private val tsConfig = "simple"
+
+    fun getUnifiedHybridSqlForDisplay(query: String, limit: Int, semanticWeight: Double, keywordWeight: Double): String {
+        val escaped = query.replace("'", "''")
+        return """
+WITH vector_results AS (
+  SELECT id, (embedding <=> ?::vector) AS dist
+  FROM namuwiki_doc
+  WHERE embedding IS NOT NULL
+  ORDER BY embedding <=> ?::vector
+  LIMIT 50
+),
+text_results AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY ts_rank(to_tsvector('$tsConfig', title || ' ' || content), plainto_tsquery('$tsConfig', '$escaped')) DESC) AS r
+  FROM namuwiki_doc
+  WHERE to_tsvector('$tsConfig', title || ' ' || content) @@ plainto_tsquery('$tsConfig', '$escaped')
+  LIMIT 50
+),
+fusion AS (
+  SELECT id, SUM(score) AS total_score FROM (
+    SELECT id, $semanticWeight * (1.0 - (dist / 2.0)) AS score FROM vector_results
+    UNION ALL
+    SELECT id, (1.0 / (60 + r)) * 61.0 * $keywordWeight AS score FROM text_results
+  ) t GROUP BY id
+)
+SELECT nd.id, nd.title, nd.content
+FROM namuwiki_doc nd
+JOIN fusion f ON nd.id = f.id
+ORDER BY f.total_score DESC
+LIMIT $limit
+        """.trimIndent()
+    }
+
+    private fun unifiedHybridSql(limit: Int): String = """
+WITH vector_results AS (
+  SELECT id, (embedding <=> ?::vector) AS dist
+  FROM namuwiki_doc
+  WHERE embedding IS NOT NULL
+  ORDER BY embedding <=> ?::vector
+  LIMIT 50
+),
+text_results AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY ts_rank(to_tsvector(?, title || ' ' || content), plainto_tsquery(?, ?)) DESC) AS r
+  FROM namuwiki_doc
+  WHERE to_tsvector(?, title || ' ' || content) @@ plainto_tsquery(?, ?)
+  LIMIT 50
+),
+fusion AS (
+  SELECT id, SUM(score) AS total_score FROM (
+    SELECT id, ? * (1.0 - (dist / 2.0)) AS score FROM vector_results
+    UNION ALL
+    SELECT id, (1.0 / (60 + r)) * 61.0 * ? AS score FROM text_results
+  ) t GROUP BY id
+)
+SELECT nd.id, nd.title, nd.content
+FROM namuwiki_doc nd
+JOIN fusion f ON nd.id = f.id
+ORDER BY f.total_score DESC
+LIMIT ?
+        """.trimIndent()
+
+    fun explainUnifiedHybridSearch(
+        embedding: FloatArray,
+        query: String,
+        limit: Int,
+        semanticWeight: Double,
+        keywordWeight: Double,
+    ): String {
+        if (embedding.isEmpty() && query.isBlank()) return "[]"
+        val v = PGvector(embedding)
+        val sql = "EXPLAIN (FORMAT JSON)\n" + unifiedHybridSql(limit)
+        return try {
+            val list = jdbc.query(
+                sql,
+                { rs, _ -> rs.getString(1) },
+                v, v,
+                tsConfig, tsConfig, query, tsConfig, tsConfig, query,
+                semanticWeight, keywordWeight,
+                limit,
+            )
             list?.firstOrNull() ?: "[]"
         } catch (_: Exception) {
             "[]"
