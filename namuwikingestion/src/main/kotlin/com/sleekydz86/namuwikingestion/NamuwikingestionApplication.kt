@@ -4,8 +4,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class NamuwikingestionApplication
-
-fun main(args: Array<String>) {
-    runApplication<NamuwikingestionApplication>(*args)
+class NamuwikingestionApplication {
+    companion object {
+        @JvmStatic
+        fun main(args: Array<String>) {
+            runApplication<NamuwikingestionApplication>(*args)
+        }
+    }
 }

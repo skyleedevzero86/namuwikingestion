@@ -112,16 +112,21 @@ class HfDatasetService(
         val response = http.newCall(request).execute()
         if (response.body == null) throw RuntimeException("응답 본문 없음")
         val dir = config.downloadDir?.trim()?.takeIf { it.isNotEmpty() }?.let { Paths.get(it) }
-        if (dir != null) {
-            Files.createDirectories(dir)
-        }
-        val tempFile = (dir?.let { Files.createTempFile(it, "namuwiki-", ".parquet") }
-            ?: Files.createTempFile("namuwiki-", ".parquet")).toFile()
+            ?: Paths.get(System.getProperty("java.io.tmpdir"))
+        Files.createDirectories(dir)
+        val tempFile = Files.createTempFile(dir, "namuwiki-", ".parquet").toFile()
         logger.info { "parquet 저장 경로: ${tempFile.absolutePath}" }
-        response.body!!.byteStream().use { input ->
-            tempFile.outputStream().use { output ->
-                input.copyTo(output)
+        try {
+            response.body!!.byteStream().use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
             }
+        } catch (e: java.io.IOException) {
+            tempFile.delete()
+            if (e.message?.contains("공간", ignoreCase = true) == true || e.message?.contains("space", ignoreCase = true) == true)
+                throw RuntimeException("디스크 공간 부족: ${tempFile.absolutePath}. namuwiki.dataset.download-dir 를 여유 공간이 있는 드라이브(예: D:) 경로로 설정하세요.", e)
+            throw e
         }
         return tempFile
     }
