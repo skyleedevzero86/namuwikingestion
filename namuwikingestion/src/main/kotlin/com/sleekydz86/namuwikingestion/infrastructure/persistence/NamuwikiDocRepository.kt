@@ -5,7 +5,10 @@ import com.pgvector.PGvector
 import com.sleekydz86.namuwikingestion.dataclass.NamuwikiDoc
 import com.sleekydz86.namuwikingestion.global.config.InsertConfig
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
+import java.sql.ResultSet
+
 @Repository
 class NamuwikiDocRepository(
     private val jdbc: JdbcTemplate,
@@ -34,4 +37,30 @@ class NamuwikiDocRepository(
     } catch (_: Exception) {
         0L
     }
+
+    fun searchByVector(embedding: FloatArray, limit: Int): List<VectorSearchRow> {
+        if (embedding.isEmpty()) return emptyList()
+        val v = PGvector(embedding)
+        val sql = """
+            SELECT id, title, content, (embedding <=> ?) AS dist
+            FROM namuwiki_doc
+            WHERE embedding IS NOT NULL
+            ORDER BY embedding <=> ?
+            LIMIT ?
+        """.trimIndent()
+        return jdbc.query(sql, VECTOR_ROW_MAPPER, v, v, limit)
+    }
+
+    companion object {
+        private val VECTOR_ROW_MAPPER = RowMapper { rs: ResultSet, _: Int ->
+            VectorSearchRow(
+                id = rs.getLong("id"),
+                title = rs.getString("title") ?: "",
+                content = rs.getString("content") ?: "",
+                distance = rs.getDouble("dist"),
+            )
+        }
+    }
+
+    data class VectorSearchRow(val id: Long, val title: String, val content: String, val distance: Double)
 }
