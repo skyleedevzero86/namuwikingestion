@@ -26,7 +26,13 @@
         .btn-primary { background: #3b82f6; color: #fff; }
         .btn-primary:hover { background: #2563eb; }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .error-msg { color: #ef4444; font-size: 0.875rem; margin-top: 8px; }
+        .hint-msg { color: #71717a; font-size: 0.875rem; margin-left: 8px; }
+.error-msg { color: #ef4444; font-size: 0.875rem; margin-top: 8px; }
+        .embedding-link { font-size: 0.75rem; margin-top: 4px; }
+        .embedding-link a { color: #71717a; }
+        .embedding-link a:hover { color: #3b82f6; }
+        #cardEmbedding .value.connected { color: #22c55e; }
+        #cardEmbedding .value.disconnected { color: #ef4444; }
     </style>
 </head>
 <body>
@@ -48,12 +54,18 @@
         <div class="label">DB 총계</div>
         <div class="value" id="dbTotal">0</div>
     </div>
+    <div class="card" id="cardEmbedding">
+        <div class="label">임베딩 서버</div>
+        <div class="value" id="embeddingStatus">확인 중</div>
+        <div class="embedding-link" id="embeddingLink"></div>
+    </div>
 </div>
 <div class="chart-wrap">
     <canvas id="progressChart"></canvas>
 </div>
 <div class="actions">
     <button type="button" class="btn btn-primary" id="btnStart">수집 시작</button>
+    <span class="hint-msg" id="hintMsg"></span>
     <span class="error-msg" id="errorMsg"></span>
 </div>
 
@@ -86,8 +98,14 @@
             $('#inserted').text(formatNum(data.inserted));
             if (data.errorMessage) {
                 $('#errorMsg').text(data.errorMessage).show();
+                $('#hintMsg').hide();
             } else {
                 $('#errorMsg').hide();
+                if (data.status === 'RUNNING' && data.rowsRead === 0) {
+                    $('#hintMsg').text('시작 중… (약 1초마다 진행이 갱신됩니다)').show();
+                } else {
+                    $('#hintMsg').hide();
+                }
             }
             if (data.history && data.history.length > 0) {
                 var labels = data.history.map(function(s) {
@@ -136,11 +154,37 @@
             });
         }
 
+        function fetchEmbeddingHealth() {
+            $.getJSON('/api/embedding-health').done(function(d) {
+                var statusEl = $('#embeddingStatus');
+                var linkEl = $('#embeddingLink');
+                statusEl.removeClass('connected disconnected');
+                if (d.ok) {
+                    statusEl.text('연결됨').addClass('connected');
+                    if (d.model) statusEl.attr('title', d.model);
+                    if (d.healthUrl) {
+                        linkEl.html('<a href="' + d.healthUrl + '" target="_blank" rel="noopener">' + d.healthUrl + '</a>').show();
+                    } else {
+                        linkEl.empty().hide();
+                    }
+                } else {
+                    statusEl.text('연결 안 됨').addClass('disconnected');
+                    if (d.healthUrl) {
+                        linkEl.html('<a href="' + d.healthUrl + '" target="_blank" rel="noopener">' + d.healthUrl + '</a>').show();
+                    } else {
+                        linkEl.text('endpoint-url 미설정').show();
+                    }
+                }
+            });
+        }
+
         function startPolling() {
             if (pollInterval) return;
+            fetchEmbeddingHealth();
             pollInterval = setInterval(function() {
                 fetchProgress();
                 fetchStats();
+                fetchEmbeddingHealth();
             }, 1000);
         }
 

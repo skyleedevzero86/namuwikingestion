@@ -45,14 +45,25 @@ class NamuwikiIngestionService(
         val embedBatchSize = embeddingConfig.batchSize
         val insertBatchSize = insertConfig.batchSize
 
+        val progressUpdateInterval = 1_000   
+        val progressLogInterval = 10_000 
         for (row in hfDataset.streamRows()) {
             totalRows++
             rowBuffer.add(row)
+            if (totalRows % progressUpdateInterval == 0) {
+                progressHolder.update(totalRows, inserted)
+                if (totalRows % progressLogInterval == 0) {
+                    logger.info { "진행: 읽은 행 $totalRows, 저장 $inserted" }
+                }
+            }
             if (rowBuffer.size >= embedBatchSize) {
                 docBuffer.addAll(embedAndConvert(rowBuffer))
                 rowBuffer.clear()
                 flushDocBuffer(docBuffer, insertBatchSize) { inserted += it }
                 progressHolder.update(totalRows, inserted)
+                if (totalRows % progressLogInterval == 0) {
+                    logger.info { "진행: 읽은 행 $totalRows, 저장 $inserted" }
+                }
             }
         }
         if (rowBuffer.isNotEmpty()) {

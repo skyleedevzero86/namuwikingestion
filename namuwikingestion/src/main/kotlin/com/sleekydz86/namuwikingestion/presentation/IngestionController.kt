@@ -4,6 +4,7 @@ package com.sleekydz86.namuwikingestion.presentation
 import com.sleekydz86.namuwikingestion.application.IngestionProgressHolder
 import com.sleekydz86.namuwikingestion.application.IngestionRunner
 import com.sleekydz86.namuwikingestion.global.enums.IngestionStatus
+import com.sleekydz86.namuwikingestion.infrastructure.embedding.EmbeddingHealthCheck
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.NamuwikiDocRepository
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -17,6 +18,7 @@ class IngestionController(
     private val ingestionRunner: IngestionRunner,
     private val progressHolder: IngestionProgressHolder,
     private val docRepository: NamuwikiDocRepository,
+    private val embeddingHealthCheck: EmbeddingHealthCheck,
 ) {
 
     @PostMapping("/ingest")
@@ -53,6 +55,19 @@ class IngestionController(
         return ResponseEntity.ok(StatsResponse(documentCount = count))
     }
 
+    @GetMapping("/embedding-health")
+    fun embeddingHealth(): ResponseEntity<EmbeddingHealthResponse> {
+        val result = embeddingHealthCheck.check()
+        return ResponseEntity.ok(
+            EmbeddingHealthResponse(
+                ok = result.ok,
+                healthUrl = result.healthUrl,
+                model = result.model,
+            )
+        )
+    }
+
+    data class EmbeddingHealthResponse(val ok: Boolean, val healthUrl: String?, val model: String?)
     data class IngestionResponse(val message: String)
 
     data class ProgressResponse(

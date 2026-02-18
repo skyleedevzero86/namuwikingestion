@@ -27,7 +27,10 @@ class HttpEmbeddingClient(
     override fun embedBatch(texts: List<String>): List<FloatArray> {
         if (texts.isEmpty()) return emptyList()
         if (config.endpointUrl.isBlank()) {
-            throw IllegalStateException("namuwiki.embedding.endpoint-url 설정되지 않음")
+            throw IllegalStateException(
+                "namuwiki.embedding.endpoint-url 설정되지 않음. " +
+                "application.yml에 endpoint-url을 넣거나 환경변수 NAMUWIKI_EMBEDDING_ENDPOINT_URL 을 설정하세요."
+            )
         }
         val truncated = texts.map { t ->
             if (config.maxTextLength > 0 && t.length > config.maxTextLength) t.take(config.maxTextLength) else t
