@@ -10,11 +10,9 @@ import mu.KotlinLogging
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.apache.avro.generic.GenericRecord
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.Path
 import org.apache.parquet.avro.AvroParquetReader
-import org.apache.parquet.hadoop.util.HadoopInputFile
 import com.sleekydz86.namuwikingestion.dataclass.NamuwikiRow
+import com.sleekydz86.namuwikingestion.infrastructure.parquet.LocalInputFile
 import com.sleekydz86.namuwikingestion.global.config.DatasetConfig
 import org.springframework.stereotype.Service
 import java.io.File
@@ -40,9 +38,8 @@ class HfDatasetService(
         try {
             val limit = if (config.limit > 0) config.limit else Int.MAX_VALUE
             var count = 0
-            val conf = Configuration()
-            val inputFile = HadoopInputFile.fromPath(Path(parquetFile.absolutePath), conf)
-            AvroParquetReader.builder<GenericRecord>(inputFile).withConf(conf).build().use { reader ->
+            val inputFile = LocalInputFile(parquetFile)
+            AvroParquetReader.builder<GenericRecord>(inputFile).build().use { reader ->
                 var record: GenericRecord?
                 while (reader.read().also { record = it } != null && count < limit) {
                     yield(recordToRow(record!!))
