@@ -1,7 +1,9 @@
 package com.sleekydz86.namuwikingestion.infrastructure.huggingface
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import mu.KotlinLogging
@@ -30,7 +32,7 @@ class HfDatasetService(
         .readTimeout(10, TimeUnit.MINUTES)
         .writeTimeout(5, TimeUnit.MINUTES)
         .build()
-    private val objectMapper = jacksonObjectMapper()
+    private val objectMapper = jacksonObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     fun streamRows(): Sequence<NamuwikiRow> = sequence {
         val parquetFile = resolveParquetFile()
@@ -76,6 +78,13 @@ class HfDatasetService(
     }
 
     private fun fetchParquetUrl(): String {
+        val commit = config.hfCommit?.trim()?.takeIf { it.isNotEmpty() }
+        val fileName = config.parquetFileName?.trim()?.takeIf { it.isNotEmpty() }
+        if (commit != null && fileName != null) {
+            val direct = "https://huggingface.co/datasets/${config.hfDataset}/resolve/$commit/$fileName"
+            logger.info { "지정 파일 직접 다운로드: $fileName (커밋 $commit)" }
+            return direct
+        }
         val url = "https://datasets-server.huggingface.co/parquet?dataset=${config.hfDataset.replace("/", "%2F")}"
         val request = Request.Builder().url(url).get().build()
         val response = http.newCall(request).execute()
@@ -113,5 +122,6 @@ class HfDatasetService(
     private data class ParquetListResponse(
         @JsonProperty("parquet_files") val parquetFiles: List<ParquetFileEntry>? = null
     )
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private data class ParquetFileEntry(val url: String, val split: String)
 }
