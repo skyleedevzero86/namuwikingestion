@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나무위키 수집</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 24px; background: #0f0f12; color: #e4e4e7; }
+        h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 24px; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; }
+        .card .label { font-size: 0.75rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+        .card .value { font-size: 1.5rem; font-weight: 600; }
+        .card.status .value { text-transform: capitalize; }
+        .card.status.RUNNING .value { color: #22c55e; }
+        .card.status.DONE .value { color: #3b82f6; }
+        .card.status.ERROR .value { color: #ef4444; }
+        .card.status.IDLE .value { color: #71717a; }
+        .chart-wrap { background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; margin-bottom: 24px; height: 280px; }
+        .chart-wrap canvas { max-height: 240px; }
+        .actions { display: flex; gap: 12px; align-items: center; }
+        .btn { padding: 10px 20px; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; }
+        .btn-primary { background: #3b82f6; color: #fff; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .error-msg { color: #ef4444; font-size: 0.875rem; margin-top: 8px; }
+    </style>
+</head>
+<body>
+<h1>나무위키 수집</h1>
+<div class="cards">
+    <div class="card status" id="cardStatus">
+        <div class="label">상태</div>
+        <div class="value" id="statusValue">대기</div>
+    </div>
+    <div class="card">
+        <div class="label">읽은 행</div>
+        <div class="value" id="rowsRead">0</div>
+    </div>
+    <div class="card">
+        <div class="label">저장됨</div>
+        <div class="value" id="inserted">0</div>
+    </div>
+    <div class="card">
+        <div class="label">DB 총계</div>
+        <div class="value" id="dbTotal">0</div>
+    </div>
+</div>
+<div class="chart-wrap">
+    <canvas id="progressChart"></canvas>
+</div>
+<div class="actions">
+    <button type="button" class="btn btn-primary" id="btnStart">수집 시작</button>
+    <span class="error-msg" id="errorMsg"></span>
+</div>
+
+<script th:inline="javascript">
+    (function() {
+        var chart = null;
+        var pollInterval = null;
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        function formatNum(n) {
+            return n >= 1000000 ? (n / 1e6).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n);
+        }
+
+        function statusLabel(s) {
+            var map = { 'IDLE': '대기', 'RUNNING': '수집 중', 'DONE': '완료', 'ERROR': '오류' };
+            return map[s] || s;
+        }
+
+        function updateUI(data) {
+            $('#statusValue').text(statusLabel(data.status));
+            $('#cardStatus').removeClass('RUNNING DONE ERROR IDLE').addClass(data.status);
+            $('#btnStart').prop('disabled', data.status === 'RUNNING');
+            $('#rowsRead').text(formatNum(data.rowsRead));
+            $('#inserted').text(formatNum(data.inserted));
+            if (data.errorMessage) {
+                $('#errorMsg').text(data.errorMessage).show();
+            } else {
+                $('#errorMsg').hide();
+            }
+            if (data.history && data.history.length > 0) {
+                var labels = data.history.map(function(s) {
+                    var d = new Date(s.at);
+                    return d.toLocaleTimeString();
+                });
+                var rowsData = data.history.map(function(s) { return s.rowsRead; });
+                var insertedData = data.history.map(function(s) { return s.inserted; });
+                if (!chart) {
+                    var ctx = document.getElementById('progressChart').getContext('2d');
+                    chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { label: '읽은 행', data: rowsData, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', fill: true, tension: 0.2 },
+                                { label: '저장됨', data: insertedData, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.2 }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { grid: { color: '#27272a' }, ticks: { color: '#71717a', maxTicksLimit: 10 } },
+                                y: { grid: { color: '#27272a' }, ticks: { color: '#71717a' } }
+                            },
+                            plugins: { legend: { labels: { color: '#e4e4e7' } } }
+                        }
+                    });
+                } else {
+                    chart.data.labels = labels;
+                    chart.data.datasets[0].data = rowsData;
+                    chart.data.datasets[1].data = insertedData;
+                    chart.update('none');
+                }
+            }
+        }
+
+        function fetchProgress() {
+            $.getJSON('/api/progress').done(updateUI);
+        }
+
+        function fetchStats() {
+            $.getJSON('/api/stats').done(function(d) {
+                $('#dbTotal').text(formatNum(d.documentCount));
+            });
+        }
+
+        function startPolling() {
+            if (pollInterval) return;
+            pollInterval = setInterval(function() {
+                fetchProgress();
+                fetchStats();
+            }, 1000);
+        }
+
+        $('#btnStart').on('click', function() {
+            var btn = $(this);
+            btn.prop('disabled', true);
+            $('#errorMsg').hide();
+            $.ajax({
+                url: '/api/ingest',
+                type: 'POST',
+                contentType: 'application/json'
+            }).fail(function(xhr) {
+                $('#errorMsg').text(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : '시작 실패').show();
+            }).always(function() {
+                btn.prop('disabled', false);
+            });
+        });
+
+        fetchProgress();
+        fetchStats();
+        startPolling();
+    })();
+</script>
+</body>
+</html>
