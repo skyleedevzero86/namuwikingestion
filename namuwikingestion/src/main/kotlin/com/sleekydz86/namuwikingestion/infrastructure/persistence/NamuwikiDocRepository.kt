@@ -38,21 +38,78 @@ class NamuwikiDocRepository(
         0L
     }
 
+    data class VectorSearchRow(val id: Long, val title: String, val content: String, val distance: Double)
+    data class FullTextSearchRow(val id: Long, val title: String, val content: String, val rank: Double)
+
+    private fun vectorSearchSql(limit: Int) = """
+        SELECT id, title, content, (embedding <=> ?::vector) AS dist
+        FROM namuwiki_doc
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> ?::vector
+        LIMIT $limit
+    """.trimIndent()
+
     fun searchByVector(embedding: FloatArray, limit: Int): List<VectorSearchRow> {
         if (embedding.isEmpty()) return emptyList()
         val v = PGvector(embedding)
-        val sql = """
-            SELECT id, title, content, (embedding <=> ?) AS dist
-            FROM namuwiki_doc
-            WHERE embedding IS NOT NULL
-            ORDER BY embedding <=> ?
-            LIMIT ?
-        """.trimIndent()
-        return jdbc.query(sql, VECTOR_ROW_MAPPER, v, v, limit)
+        return jdbc.query(vectorSearchSql(limit), VECTOR_ROW_MAPPER, v, v)
+    }
+
+    fun getVectorSearchSqlForDisplay(limit: Int): String = vectorSearchSql(limit)
+
+    fun explainVectorSearch(embedding: FloatArray, limit: Int): String {
+        if (embedding.isEmpty()) return "[]"
+        val v = PGvector(embedding)
+        val sql = "EXPLAIN (FORMAT JSON)\n" + vectorSearchSql(limit)
+        return try {
+            val list = jdbc.query(sql, { rs, _ -> rs.getString(1) }, v, v)
+            list?.firstOrNull() ?: "[]"
+        } catch (_: Exception) {
+            "[]"
+        }
+    }
+
+    private fun fullTextSearchSql(limit: Int, config: String) = """
+        SELECT id, title, content,
+               ts_rank(to_tsvector(?, title || ' ' || content), plainto_tsquery(?, ?)) AS r
+        FROM namuwiki_doc
+        WHERE to_tsvector(?, title || ' ' || content) @@ plainto_tsquery(?, ?)
+        ORDER BY r DESC
+        LIMIT $limit
+    """.trimIndent()
+
+    fun searchByFullText(query: String, limit: Int, config: String = "simple"): List<FullTextSearchRow> {
+        if (query.isBlank()) return emptyList()
+        return try {
+            jdbc.query(fullTextSearchSql(limit, config), FULLTEXT_ROW_MAPPER, config, config, query, config, config, query)
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun getFullTextSearchSqlForDisplay(limit: Int, config: String, queryForDisplay: String?): String {
+        val escaped = queryForDisplay?.replace("'", "''") ?: "?"
+        val sql = fullTextSearchSql(limit, config)
+        val values = listOf(config, config, "'$escaped'", config, config, "'$escaped'")
+        val parts = sql.split("?")
+        return parts.foldIndexed(StringBuilder()) { i, acc, p ->
+            acc.append(p).append(values.getOrNull(i) ?: "")
+        }.toString()
+    }
+
+    fun explainFullTextSearch(query: String, limit: Int, config: String = "simple"): String {
+        if (query.isBlank()) return "[]"
+        val sql = "EXPLAIN (FORMAT JSON)\n" + fullTextSearchSql(limit, config)
+        return try {
+            val list = jdbc.query(sql, { rs, _ -> rs.getString(1) }, config, config, query, config, config, query)
+            list?.firstOrNull() ?: "[]"
+        } catch (_: Exception) {
+            "[]"
+        }
     }
 
     companion object {
-        private val VECTOR_ROW_MAPPER = RowMapper { rs: ResultSet, _: Int ->
+        private val VECTOR_ROW_MAPPER = RowMapper<VectorSearchRow> { rs: ResultSet, _: Int ->
             VectorSearchRow(
                 id = rs.getLong("id"),
                 title = rs.getString("title") ?: "",
@@ -60,7 +117,13 @@ class NamuwikiDocRepository(
                 distance = rs.getDouble("dist"),
             )
         }
+        private val FULLTEXT_ROW_MAPPER = RowMapper<FullTextSearchRow> { rs: ResultSet, _: Int ->
+            FullTextSearchRow(
+                id = rs.getLong("id"),
+                title = rs.getString("title") ?: "",
+                content = rs.getString("content") ?: "",
+                rank = rs.getDouble("r"),
+            )
+        }
     }
-
-    data class VectorSearchRow(val id: Long, val title: String, val content: String, val distance: Double)
 }
