@@ -2,27 +2,45 @@ package com.sleekydz86.namuwikingestion.application
 
 import com.sleekydz86.namuwikingestion.domain.port.EmbeddingClient
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.NamuwikiDocRepository
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
 class SearchService(
     private val embeddingClient: EmbeddingClient,
     private val docRepository: NamuwikiDocRepository,
+    @Value("\${namuwiki.search.min-similarity-percent:55}") private val minSimilarityPercent: Double,
 ) {
 
     fun search(query: String, limit: Int = 20): List<SearchResultDto> {
-        if (query.isBlank()) return emptyList()
-        val vectors = embeddingClient.embedBatch(listOf(query.trim()))
+        val q = query.trim()
+        if (q.isBlank()) return emptyList()
+        val vectors = embeddingClient.embedBatch(listOf(q))
         if (vectors.isEmpty()) return emptyList()
         val rows = docRepository.searchByVector(vectors.single(), limit)
-        return rows.map { row ->
-            val similarityPercent = cosineDistanceToSimilarityPercent(row.distance)
-            SearchResultDto(
-                id = row.id,
-                title = row.title,
-                contentSnippet = snippet(row.content, 500),
-                similarityPercent = similarityPercent,
-            )
+        return rows
+            .filter { row -> queryMatchesDocument(q, row.title, row.content) }
+            .map { row ->
+                val similarityPercent = cosineDistanceToSimilarityPercent(row.distance)
+                SearchResultDto(
+                    id = row.id,
+                    title = row.title,
+                    contentSnippet = snippet(row.content, 500),
+                    similarityPercent = similarityPercent,
+                )
+            }
+            .filter { it.similarityPercent >= minSimilarityPercent }
+    }
+
+    private fun queryMatchesDocument(query: String, title: String, content: String): Boolean {
+        val q = query.lowercase()
+        val titleLow = title.lowercase()
+        val contentLow = content.lowercase()
+        return when {
+            q.length <= 30 -> q in titleLow || q in contentLow
+            else -> q.split(Regex("\\s+")).any { word ->
+                word.length > 1 && (word in titleLow || word in contentLow)
+            }
         }
     }
 
