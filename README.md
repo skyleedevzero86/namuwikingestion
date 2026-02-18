@@ -277,8 +277,6 @@ flowchart LR
 
 ---
 
----
-
 ## 설정 (application.yml / 환경 변수)
 
 | 설정             | 환경 변수                         | 설명                                                           |
