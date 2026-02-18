@@ -16,6 +16,7 @@ data class DatasetConfig(
     val split: String = "train",
     val limit: Int = 0,
     val localParquetPath: String? = null,
+    val downloadDir: String? = null,
 )
 
 @ConfigurationProperties(prefix = "namuwiki.insert")

@@ -19,6 +19,7 @@ import com.sleekydz86.namuwikingestion.global.config.DatasetConfig
 import org.springframework.stereotype.Service
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
@@ -110,7 +111,13 @@ class HfDatasetService(
         val request = Request.Builder().url(url).get().build()
         val response = http.newCall(request).execute()
         if (response.body == null) throw RuntimeException("응답 본문 없음")
-        val tempFile = Files.createTempFile("namuwiki-", ".parquet").toFile()
+        val dir = config.downloadDir?.trim()?.takeIf { it.isNotEmpty() }?.let { Paths.get(it) }
+        if (dir != null) {
+            Files.createDirectories(dir)
+        }
+        val tempFile = (dir?.let { Files.createTempFile(it, "namuwiki-", ".parquet") }
+            ?: Files.createTempFile("namuwiki-", ".parquet")).toFile()
+        logger.info { "parquet 저장 경로: ${tempFile.absolutePath}" }
         response.body!!.byteStream().use { input ->
             tempFile.outputStream().use { output ->
                 input.copyTo(output)
