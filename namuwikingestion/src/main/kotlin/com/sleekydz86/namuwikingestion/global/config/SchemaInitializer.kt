@@ -15,6 +15,12 @@ class SchemaInitializer(private val dataSource: DataSource) {
 
     @jakarta.annotation.PostConstruct
     fun runSchema() {
+        Thread {
+            runSchemaBlocking()
+        }.apply { isDaemon = false; start() }
+    }
+
+    private fun runSchemaBlocking() {
         try {
             dataSource.connection.use { conn ->
                 val resource = EncodedResource(ClassPathResource("schema.sql"), StandardCharsets.UTF_8)
