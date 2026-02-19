@@ -1,92 +1,279 @@
-<!DOCTYPE html>
+<!doctype html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>벡터 검색 - 나무위키</title>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 24px; background: #0f0f12; color: #e4e4e7; }
-        a { color: #3b82f6; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .header { margin-bottom: 24px; }
-        .header h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 16px 0; }
-        .search-form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
-        .search-form label { font-size: 0.875rem; color: #a1a1aa; }
-        .search-input { flex: 1; min-width: 280px; padding: 10px 14px; border-radius: 6px; border: 1px solid #27272a; background: #18181b; color: #e4e4e7; font-size: 1rem; }
-        .search-input::placeholder { color: #71717a; }
-        .search-input:focus { outline: none; border-color: #3b82f6; }
-        .btn { padding: 10px 20px; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; }
-        .btn-primary { background: #3b82f6; color: #fff; }
-        .btn-primary:hover { background: #2563eb; }
-        .results-info { font-size: 0.875rem; color: #71717a; margin-bottom: 16px; }
-        .result-list { display: flex; flex-direction: column; gap: 16px; }
-        .result-card { background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 20px; }
-        .result-card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-        .result-card-title { font-size: 1.125rem; font-weight: 600; margin: 0; color: #fafafa; }
-        .similarity-badge { background: #22c55e; color: #fff; font-size: 0.75rem; font-weight: 500; padding: 4px 10px; border-radius: 9999px; white-space: nowrap; }
-        .result-card-content { font-size: 0.875rem; line-height: 1.6; color: #a1a1aa; white-space: pre-wrap; word-break: break-word; }
-        .error-msg { color: #ef4444; font-size: 0.875rem; margin-top: 8px; }
-        .nav-link { font-size: 0.875rem; color: #71717a; margin-bottom: 16px; }
-        .hashtags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
-        .hashtag { background: #27272a; color: #3b82f6; padding: 4px 10px; border-radius: 6px; font-size: 0.875rem; cursor: pointer; user-select: none; }
-        .hashtag:hover { background: #3f3f46; }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #0f0f12;
+        color: #e4e4e7;
+      }
+      a {
+        color: #3b82f6;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .header {
+        margin-bottom: 24px;
+      }
+      .header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0 0 16px 0;
+      }
+      .search-form {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+      .search-form label {
+        font-size: 0.875rem;
+        color: #a1a1aa;
+      }
+      .search-input {
+        flex: 1;
+        min-width: 280px;
+        padding: 10px 14px;
+        border-radius: 6px;
+        border: 1px solid #27272a;
+        background: #18181b;
+        color: #e4e4e7;
+        font-size: 1rem;
+      }
+      .search-input::placeholder {
+        color: #71717a;
+      }
+      .search-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+      }
+      .btn {
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+      }
+      .btn-primary {
+        background: #3b82f6;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #2563eb;
+      }
+      .results-info {
+        font-size: 0.875rem;
+        color: #71717a;
+        margin-bottom: 16px;
+      }
+      .result-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .result-card {
+        background: #18181b;
+        border: 1px solid #27272a;
+        border-radius: 8px;
+        padding: 20px;
+      }
+      .result-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .result-card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+        color: #fafafa;
+      }
+      .similarity-badge {
+        background: #22c55e;
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        white-space: nowrap;
+      }
+      .result-card-content {
+        font-size: 0.875rem;
+        line-height: 1.6;
+        color: #a1a1aa;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .error-msg {
+        color: #ef4444;
+        font-size: 0.875rem;
+        margin-top: 8px;
+      }
+      .nav-link {
+        font-size: 0.875rem;
+        color: #71717a;
+        margin-bottom: 16px;
+      }
+      .hashtags-label {
+        display: block;
+        font-size: 0.875rem;
+        color: #a1a1aa;
+        margin-bottom: 6px;
+        margin-top: 12px;
+      }
+      .hashtags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+        align-items: center;
+      }
+      .hashtag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #0ea5e9;
+        padding: 4px 8px 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        user-select: none;
+      }
+      .hashtag:hover {
+        background: #bae6fd;
+      }
+      .hashtag-remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: #0c4a6e;
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+        border-radius: 50%;
+      }
+      .hashtag-remove:hover {
+        background: #7dd3fc;
+        color: #0c4a6e;
+      }
     </style>
-</head>
-<body>
-<div class="nav-link"><a th:href="@{/}">← 대시보드</a></div>
-<div class="header">
-    <h1>Vector Search</h1>
-    <p class="results-info" th:if="${query != null && !query.isEmpty()}">
-        검색어: "<span th:text="${query}"></span>" · <span th:text="${#lists.size(results)}">0</span>건
-    </p>
-</div>
-
-<form class="search-form" th:action="@{/search}" method="get">
-    <label for="q">Search Query</label>
-    <input type="text" id="q" name="q" class="search-input" th:value="${query}" placeholder="예: 처음에 엄청난 기대를 받았으나 결과적으로 용두사미가 되어버린 게임 또는 영화 알려줘" />
-    <input type="hidden" name="limit" value="20" />
-    <button type="submit" class="btn btn-primary">SEARCH</button>
-    <div class="hashtags" id="hashtags" th:if="${searchKeywords != null and !#lists.isEmpty(searchKeywords)}">
-        <span th:each="kw : ${searchKeywords}" class="hashtag" th:attr="data-keyword=${kw}" role="button" tabindex="0">#<span th:text="${kw}"></span></span>
+  </head>
+  <body>
+    <div class="nav-link"><a th:href="@{/}">← 대시보드</a></div>
+    <div class="header">
+      <h1>Vector Search</h1>
+      <p class="results-info" th:if="${query != null && !query.isEmpty()}">
+        검색어: "<span th:text="${query}"></span>" ·
+        <span th:text="${#lists.size(results)}">0</span>건
+      </p>
     </div>
-</form>
 
-<script>
-(function() {
-  var input = document.getElementById('q');
-  var container = document.getElementById('hashtags');
-  if (!input || !container) return;
-  function escapeRegex(s) {
-    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-  container.addEventListener('click', function(e) {
-    var tag = e.target.closest('.hashtag');
-    if (!tag) return;
-    var kw = tag.getAttribute('data-keyword');
-    if (!kw) return;
-    var val = input.value || '';
-    var re = new RegExp('\\s*' + escapeRegex(kw) + '\\s*');
-    var next = val.replace(re, ' ').replace(/\s+/g, ' ').trim();
-    input.value = next;
-    tag.remove();
-    if (container.querySelectorAll('.hashtag').length === 0) container.style.display = 'none';
-  });
-})();
-</script>
-
-<div th:if="${query != null && !query.isEmpty() && #lists.isEmpty(results)}" class="error-msg">
-    결과가 없거나 임베딩 서버 연결에 실패했습니다. embedding-server가 실행 중인지 확인하세요.
-</div>
-
-<div class="result-list" th:if="${!#lists.isEmpty(results)}">
-    <article class="result-card" th:each="r : ${results}">
-        <div class="result-card-header">
-            <h2 class="result-card-title" th:text="${r.title}">제목</h2>
-            <span class="similarity-badge">Similarity: <span th:text="${#numbers.formatDecimal(r.similarityPercent, 1, 1)}">0</span>%</span>
+    <form class="search-form" th:action="@{/search}" method="get">
+      <label for="q">Search Query</label>
+      <input
+        type="text"
+        id="q"
+        name="q"
+        class="search-input"
+        th:value="${query}"
+        placeholder="예: 처음에 엄청난 기대를 받았으나 결과적으로 용두사미가 되어버린 게임 또는 영화 알려줘"
+      />
+      <input type="hidden" name="limit" value="20" />
+      <button type="submit" class="btn btn-primary">SEARCH</button>
+      <th:block th:if="${searchKeywords != null and !#lists.isEmpty(searchKeywords)}">
+        <span class="hashtags-label" id="hashtagsLabel">Active Search Tokens (<span th:text="${#lists.size(searchKeywords)}">0</span>)</span>
+        <div class="hashtags" id="hashtags">
+          <span
+            th:each="kw : ${searchKeywords}"
+            class="hashtag"
+            th:attr="data-keyword=${kw}"
+            role="button"
+            tabindex="0"
+          >#<span class="hashtag-text" th:text="${kw}"></span><button type="button" class="hashtag-remove" aria-label="제거">×</button></span>
         </div>
-        <div class="result-card-content" th:text="${r.contentSnippet}">내용 요약</div>
-    </article>
-</div>
-</body>
+      </th:block>
+    </form>
+
+    <script>
+      (function () {
+        var input = document.getElementById("q");
+        var container = document.getElementById("hashtags");
+        if (!input || !container) return;
+        function escapeRegex(s) {
+          return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        }
+        container.addEventListener("click", function (e) {
+          e.preventDefault();
+          var tag = e.target.closest(".hashtag");
+          if (!tag) return;
+          var kw = tag.getAttribute("data-keyword");
+          if (!kw) return;
+          var val = input.value || "";
+          var re = new RegExp("\\s*" + escapeRegex(kw) + "\\s*", "g");
+          var next = val.replace(re, " ").replace(/\s+/g, " ").trim();
+          input.value = next;
+          tag.remove();
+          var label = document.getElementById("hashtagsLabel");
+          var left = container.querySelectorAll(".hashtag").length;
+          if (label) label.textContent = "Active Search Tokens (" + left + ")";
+          if (left === 0) {
+            if (label) label.style.display = "none";
+            container.style.display = "none";
+          }
+        });
+      })();
+    </script>
+
+    <div
+      th:if="${query != null && !query.isEmpty() && #lists.isEmpty(results) && (searchError == true)}"
+      class="error-msg"
+    >
+      임베딩 서버 연결에 실패했습니다. embedding-server가 실행 중인지 확인하세요.
+    </div>
+    <div
+      th:if="${query != null && !query.isEmpty() && #lists.isEmpty(results) && (searchError != true)}"
+      class="error-msg"
+    >
+      검색 결과가 없습니다. 다른 검색어로 시도해 보세요.
+    </div>
+
+    <div class="result-list" th:if="${!#lists.isEmpty(results)}">
+      <article class="result-card" th:each="r : ${results}">
+        <div class="result-card-header">
+          <h2 class="result-card-title" th:text="${r.title}">제목</h2>
+          <span class="similarity-badge"
+            >Similarity:
+            <span th:text="${#numbers.formatDecimal(r.similarityPercent, 1, 1)}"
+              >0</span
+            >%</span
+          >
+        </div>
+        <div class="result-card-content" th:text="${r.contentSnippet}">
+          내용 요약
+        </div>
+      </article>
+    </div>
+  </body>
 </html>

@@ -1,6 +1,7 @@
 package com.sleekydz86.namuwikingestion.presentation
 
 import com.sleekydz86.namuwikingestion.application.SearchService
+import com.sleekydz86.namuwikingestion.global.util.SearchKeywordTokenizer
 import mu.KotlinLogging
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
@@ -21,12 +22,13 @@ class SearchController(
         model: Model,
     ): String {
         model.addAttribute("query", q ?: "")
-        model.addAttribute("searchKeywords", toSearchKeywords(q))
+        model.addAttribute("searchKeywords", SearchKeywordTokenizer.toTokens(q))
         if (!q.isNullOrBlank()) {
             val results = try {
                 searchService.search(q.trim(), limit.coerceIn(1, 100))
             } catch (e: Exception) {
                 logger.warn(e) { "search 실패, query=$q, 빈 결과 반환" }
+                model.addAttribute("searchError", true)
                 emptyList<SearchService.SearchResultDto>()
             }
             model.addAttribute("results", results)
@@ -36,8 +38,4 @@ class SearchController(
         return "search"
     }
 
-    private fun toSearchKeywords(q: String?): List<String> {
-        if (q.isNullOrBlank()) return emptyList()
-        return q.trim().split(Regex("\\s+")).map { it.trim() }.filter { it.isNotBlank() }.distinct()
-    }
 }

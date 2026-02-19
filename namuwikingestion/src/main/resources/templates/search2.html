@@ -228,24 +228,54 @@
         white-space: pre-wrap;
         word-break: break-word;
       }
+      .hashtags-label {
+        display: block;
+        font-size: 0.875rem;
+        color: #a1a1aa;
+        margin-bottom: 6px;
+        margin-top: 12px;
+      }
       .hashtags {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-top: 10px;
+        margin-top: 6px;
         align-items: center;
       }
       .hashtag {
-        background: #27272a;
-        color: #3b82f6;
-        padding: 4px 10px;
-        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #0ea5e9;
+        padding: 4px 8px 4px 12px;
+        border-radius: 9999px;
         font-size: 0.875rem;
         cursor: pointer;
         user-select: none;
       }
       .hashtag:hover {
-        background: #3f3f46;
+        background: #bae6fd;
+      }
+      .hashtag-remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: #0c4a6e;
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+        border-radius: 50%;
+      }
+      .hashtag-remove:hover {
+        background: #7dd3fc;
+        color: #0c4a6e;
       }
     </style>
   </head>
@@ -269,15 +299,18 @@
           />
           <button type="submit" class="btn btn-primary">🔍 SEARCH</button>
         </div>
-        <div
-          class="hashtags"
-          id="hashtags"
-          th:if="${searchKeywords != null and !#lists.isEmpty(searchKeywords)}"
-        >
-          <span th:each="kw : ${searchKeywords}" class="hashtag" th:attr="data-keyword=${kw}" role="button" tabindex="0"
-            >#<span th:text="${kw}"></span
-          ></span>
-        </div>
+        <th:block th:if="${searchKeywords != null and !#lists.isEmpty(searchKeywords)}">
+          <span class="hashtags-label" id="hashtagsLabel">Active Search Tokens (<span th:text="${#lists.size(searchKeywords)}">0</span>)</span>
+          <div class="hashtags" id="hashtags">
+            <span
+              th:each="kw : ${searchKeywords}"
+              class="hashtag"
+              th:attr="data-keyword=${kw}"
+              role="button"
+              tabindex="0"
+              >#<span class="hashtag-text" th:text="${kw}"></span><button type="button" class="hashtag-remove" aria-label="제거">×</button></span>
+          </div>
+        </th:block>
       </div>
 
       <div class="options">
@@ -358,24 +391,31 @@
       </div>
       <input type="hidden" name="limit" value="20" />
       <script>
-        (function() {
-          var input = document.getElementById('q');
-          var container = document.getElementById('hashtags');
+        (function () {
+          var input = document.getElementById("q");
+          var container = document.getElementById("hashtags");
           if (!input || !container) return;
           function escapeRegex(s) {
-            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
           }
-          container.addEventListener('click', function(e) {
-            var tag = e.target.closest('.hashtag');
+          container.addEventListener("click", function (e) {
+            e.preventDefault();
+            var tag = e.target.closest(".hashtag");
             if (!tag) return;
-            var kw = tag.getAttribute('data-keyword');
+            var kw = tag.getAttribute("data-keyword");
             if (!kw) return;
-            var val = input.value || '';
-            var re = new RegExp('\\s*' + escapeRegex(kw) + '\\s*');
-            var next = val.replace(re, ' ').replace(/\s+/g, ' ').trim();
+            var val = input.value || "";
+            var re = new RegExp("\\s*" + escapeRegex(kw) + "\\s*", "g");
+            var next = val.replace(re, " ").replace(/\s+/g, " ").trim();
             input.value = next;
             tag.remove();
-            if (container.querySelectorAll('.hashtag').length === 0) container.style.display = 'none';
+            var label = document.getElementById("hashtagsLabel");
+            var left = container.querySelectorAll(".hashtag").length;
+            if (label) label.textContent = "Active Search Tokens (" + left + ")";
+            if (left === 0) {
+              if (label) label.style.display = "none";
+              container.style.display = "none";
+            }
           });
         })();
       </script>

@@ -43,6 +43,7 @@ class NamuwikiDocRepository(
 
     data class VectorSearchRow(val id: Long, val title: String, val content: String, val distance: Double)
     data class FullTextSearchRow(val id: Long, val title: String, val content: String, val rank: Double)
+    data class UnifiedHybridRow(val id: Long, val title: String, val content: String, val totalScore: Double)
 
     private fun vectorSearchSql(limit: Int) = """
         SELECT id, title, content, (embedding <=> ?::vector) AS dist
@@ -169,12 +170,43 @@ fusion AS (
     SELECT id, (1.0 / (60 + r)) * 61.0 * ? AS score FROM text_results
   ) t GROUP BY id
 )
-SELECT nd.id, nd.title, nd.content
+SELECT nd.id, nd.title, nd.content, f.total_score
 FROM namuwiki_doc nd
 JOIN fusion f ON nd.id = f.id
 ORDER BY f.total_score DESC
 LIMIT ?
         """.trimIndent()
+
+    fun searchByUnifiedHybrid(
+        embedding: FloatArray,
+        query: String,
+        limit: Int,
+        semanticWeight: Double,
+        keywordWeight: Double,
+    ): List<UnifiedHybridRow> {
+        if (embedding.isEmpty() || query.isBlank()) return emptyList()
+        val v = PGvector(embedding)
+        return try {
+            jdbc.query(
+                unifiedHybridSql(limit),
+                RowMapper { rs: ResultSet, _: Int ->
+                    UnifiedHybridRow(
+                        id = rs.getLong("id"),
+                        title = rs.getString("title") ?: "",
+                        content = rs.getString("content") ?: "",
+                        totalScore = rs.getDouble("total_score"),
+                    )
+                },
+                v, v,
+                tsConfig, tsConfig, query, tsConfig, tsConfig, query,
+                semanticWeight, keywordWeight,
+                limit,
+            ) ?: emptyList()
+        } catch (e: Exception) {
+            logger.warn(e) { "searchByUnifiedHybrid 실패, 빈 목록" }
+            emptyList()
+        }
+    }
 
     fun explainUnifiedHybridSearch(
         embedding: FloatArray,

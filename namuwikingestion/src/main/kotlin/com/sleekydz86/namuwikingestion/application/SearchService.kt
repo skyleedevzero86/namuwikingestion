@@ -33,12 +33,14 @@ class SearchService(
     }
 
     private fun queryMatchesDocument(query: String, title: String, content: String): Boolean {
-        val q = query.lowercase()
+        val q = query.trim()
+        if (q.length > 50) return true
+        val qLow = q.lowercase()
         val titleLow = title.lowercase()
         val contentLow = content.lowercase()
         return when {
-            q.length <= 30 -> q in titleLow || q in contentLow
-            else -> q.split(Regex("\\s+")).any { word ->
+            qLow.length <= 30 -> qLow in titleLow || qLow in contentLow
+            else -> qLow.split(Regex("\\s+")).any { word ->
                 word.length > 1 && (word in titleLow || word in contentLow)
             }
         }

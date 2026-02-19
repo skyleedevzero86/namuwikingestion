@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service
 private val logger = KotlinLogging.logger {}
 private const val MAX_QUERY_LENGTH_FOR_EMBED = 512
 
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
 @Service
 class HybridSearchService(
     private val embeddingClient: EmbeddingClient,
@@ -41,7 +43,43 @@ class HybridSearchService(
         val queryForEmbed = if (q.length > MAX_QUERY_LENGTH_FOR_EMBED) q.take(MAX_QUERY_LENGTH_FOR_EMBED) else q
         val queryVector = if (useVector) embeddingClient.embedBatch(listOf(queryForEmbed)).singleOrNull() else null
 
-        val (vectorExplainJson, vectorRows, textRows) = runBlocking {
+        val semanticWeight = 1.0 - keywordWeight.coerceIn(0.0, 1.0)
+        val kwWeight = keywordWeight.coerceIn(0.0, 1.0)
+
+        val useUnifiedPath = useVector && enableBm25 && queryVector != null
+
+        if (useUnifiedPath) {
+            val (unifiedRows, queryExplanation, generatedSql) = runBlocking {
+                val rowsDeferred = async(Dispatchers.IO) {
+                    docRepository.searchByUnifiedHybrid(queryVector!!, q, limit, semanticWeight, kwWeight)
+                }
+                val explainDeferred = async(Dispatchers.IO) {
+                    try {
+                        docRepository.explainUnifiedHybridSearch(queryVector!!, q, limit, semanticWeight, kwWeight)
+                    } catch (e: Exception) {
+                        logger.warn(e) { "explainUnifiedHybridSearch 실패, []" }
+                        "[]"
+                    }
+                }
+                val rows = rowsDeferred.await()
+                val explain = explainDeferred.await()
+                val sql = docRepository.getUnifiedHybridSqlForDisplay(q, limit, semanticWeight, kwWeight)
+                Triple(rows, explain, sql)
+            }
+            val sorted = unifiedRows.map { row ->
+                val simPercent = (row.totalScore.coerceIn(0.0, 1.0) * 100.0).let { if (it.isNaN() || it.isInfinite()) 0.0 else it }
+                HybridSearchResultDto(
+                    id = row.id,
+                    title = row.title,
+                    contentSnippet = row.content.take(500).let { if (it.length >= 500) "$it..." else it },
+                    similarityPercent = simPercent,
+                    totalScore = row.totalScore,
+                )
+            }
+            return HybridSearchResult(sorted, generatedSql, queryExplanation)
+        }
+
+        val (vectorExplainJson, vectorRows, textRows, fulltextExplainJson) = runBlocking {
             val explainVec = async(Dispatchers.IO) {
                 if (queryVector == null) "[]"
                 else try {
@@ -64,26 +102,20 @@ class HybridSearchService(
                     emptyList()
                 }
             }
-            Triple(explainVec.await(), vecRows.await(), txtRows.await())
+            val ftExplain = async(Dispatchers.IO) {
+                if (!enableBm25) "[]"
+                else try {
+                    docRepository.explainFullTextSearch(q, 50, "simple")
+                } catch (e: Exception) {
+                    logger.warn(e) { "explainFullTextSearch 실패, []" }
+                    "[]"
+                }
+            }
+            Quadruple(explainVec.await(), vecRows.await(), txtRows.await(), ftExplain.await())
         }
 
-        val semanticWeight = 1.0 - keywordWeight.coerceIn(0.0, 1.0)
-        val kwWeight = keywordWeight.coerceIn(0.0, 1.0)
-        val queryExplanation: String
-        val generatedSql: String
-        if (useVector && enableBm25 && queryVector != null) {
-            queryExplanation = try {
-                docRepository.explainUnifiedHybridSearch(queryVector, q, limit, semanticWeight, kwWeight)
-            } catch (e: Exception) {
-                logger.warn(e) { "explainUnifiedHybridSearch 실패, mergeExplainJson으로 대체" }
-                mergeExplainJson(vectorExplainJson, docRepository.explainFullTextSearch(q, 50, "simple"))
-            }
-            generatedSql = docRepository.getUnifiedHybridSqlForDisplay(q, limit, semanticWeight, kwWeight)
-        } else {
-            val fulltextExplainJson = if (enableBm25) docRepository.explainFullTextSearch(q, 50, "simple") else "[]"
-            queryExplanation = mergeExplainJson(vectorExplainJson, fulltextExplainJson)
-            generatedSql = buildGeneratedSqlFromRepository(q, useVector, enableBm25)
-        }
+        val queryExplanation = mergeExplainJson(vectorExplainJson, fulltextExplainJson)
+        val generatedSql = buildGeneratedSqlFromRepository(q, useVector, enableBm25)
 
         data class DocInfo(val id: Long, val title: String, val content: String, val distance: Double)
         val scoresById = mutableMapOf<Long, Pair<Double, DocInfo>>()

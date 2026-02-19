@@ -1,6 +1,7 @@
 package com.sleekydz86.namuwikingestion.presentation
 
 import com.sleekydz86.namuwikingestion.application.HybridSearchService
+import com.sleekydz86.namuwikingestion.global.util.SearchKeywordTokenizer
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.SearchUiConfigRepository
 import mu.KotlinLogging
 import org.springframework.stereotype.Controller
@@ -26,7 +27,7 @@ class Search2Controller(
         model: Model,
     ): String {
         model.addAttribute("query", q ?: "")
-        model.addAttribute("searchKeywords", toSearchKeywords(q))
+        model.addAttribute("searchKeywords", SearchKeywordTokenizer.toTokens(q))
         model.addAttribute("vectorMode", vectorMode.ifBlank { "IVF" })
         model.addAttribute("enableBm25", enableBm25 ?: true)
         model.addAttribute("keywordWeight", keywordWeight.coerceIn(0.0, 1.0))
@@ -61,8 +62,4 @@ class Search2Controller(
         return "search2"
     }
 
-    private fun toSearchKeywords(q: String?): List<String> {
-        if (q.isNullOrBlank()) return emptyList()
-        return q.trim().split(Regex("\\s+")).map { it.trim() }.filter { it.isNotBlank() }.distinct()
-    }
 }
