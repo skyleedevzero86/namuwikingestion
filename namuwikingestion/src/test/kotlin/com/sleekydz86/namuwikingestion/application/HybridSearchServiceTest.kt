@@ -2,6 +2,7 @@ package com.sleekydz86.namuwikingestion.application
 
 import com.sleekydz86.namuwikingestion.domain.port.EmbeddingClient
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.NamuwikiDocRepository
+import com.sleekydz86.namuwikingestion.infrastructure.persistence.VectorSearchRow
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.SearchUiConfigRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -48,7 +49,7 @@ class HybridSearchServiceTest {
         val query = "검색어"
         val vec = FloatArray(384) { 0.1f }
         whenever(embeddingClient.embedBatch(listOf(query))).thenReturn(listOf(vec))
-        val row = NamuwikiDocRepository.VectorSearchRow(1L, "제목", "내용", 0.3)
+        val row = VectorSearchRow(1L, "제목", "내용", 0.3)
         whenever(docRepository.searchByVector(eq(vec), eq(50))).thenReturn(listOf(row))
         whenever(docRepository.explainVectorSearch(eq(vec), eq(20))).thenReturn("[]")
 
@@ -69,9 +70,9 @@ class HybridSearchServiceTest {
 
     @Test
     fun `search - vectorMode NONE이면 embedding 호출 안 함`() {
-        whenever(docRepository.searchByFullText(eq("쿼리"), eq(50), eq("simple"))).thenReturn(emptyList())
-        whenever(docRepository.explainFullTextSearch(eq("쿼리"), eq(50), eq("simple"))).thenReturn("[]")
-        whenever(docRepository.getFullTextSearchSqlForDisplay(eq(50), eq("simple"), eq("쿼리"))).thenReturn("-- fulltext")
+        whenever(docRepository.searchByFullText("쿼리", 50)).thenReturn(emptyList())
+        whenever(docRepository.explainFullTextSearch("쿼리", 50)).thenReturn("[]")
+        whenever(docRepository.getFullTextSearchSqlForDisplay(50, null, "쿼리")).thenReturn("-- fulltext")
 
         service.search(
             query = "쿼리",

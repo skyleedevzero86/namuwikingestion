@@ -1,5 +1,6 @@
 package com.sleekydz86.namuwikingestion.presentation
 
+import com.sleekydz86.namuwikingestion.application.SearchResultDto
 import com.sleekydz86.namuwikingestion.application.SearchService
 import com.sleekydz86.namuwikingestion.global.util.SearchKeywordTokenizer
 import mu.KotlinLogging
@@ -29,11 +30,11 @@ class SearchController(
             } catch (e: Exception) {
                 logger.warn(e) { "search 실패, query=$q, 빈 결과 반환" }
                 model.addAttribute("searchError", true)
-                emptyList<SearchService.SearchResultDto>()
+                emptyList<SearchResultDto>()
             }
             model.addAttribute("results", results)
         } else {
-            model.addAttribute("results", emptyList<SearchService.SearchResultDto>())
+            model.addAttribute("results", emptyList<SearchResultDto>())
         }
         return "search"
     }

@@ -1,5 +1,7 @@
 package com.sleekydz86.namuwikingestion.presentation
 
+import com.sleekydz86.namuwikingestion.application.HybridSearchResult
+import com.sleekydz86.namuwikingestion.application.HybridSearchResultDto
 import com.sleekydz86.namuwikingestion.application.HybridSearchService
 import com.sleekydz86.namuwikingestion.global.util.SearchKeywordTokenizer
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.SearchUiConfigRepository
@@ -49,13 +51,13 @@ class Search2Controller(
                 logger.warn(e) { "search2 실패, query=$q, 오류 플레이스홀더 반환" }
                 val errSql = searchUiConfigRepository.getValue("search2.errorSqlPlaceholder") ?: "-- 오류 발생"
                 val errExplain = searchUiConfigRepository.getValue("search2.errorExplanationPlaceholder") ?: "[]"
-                HybridSearchService.HybridSearchResult(emptyList(), errSql, errExplain)
+                HybridSearchResult(emptyList(), errSql, errExplain)
             }
             model.addAttribute("results", result.results)
             model.addAttribute("generatedSql", result.generatedSql)
             model.addAttribute("queryExplanation", result.queryExplanation)
         } else {
-            model.addAttribute("results", emptyList<HybridSearchService.HybridSearchResultDto>())
+            model.addAttribute("results", emptyList<HybridSearchResultDto>())
             model.addAttribute("generatedSql", searchUiConfigRepository.getValue("search2.emptySqlPlaceholder") ?: "-- 검색어 입력 후 SEARCH")
             model.addAttribute("queryExplanation", searchUiConfigRepository.getValue("search2.emptyExplanationPlaceholder") ?: "[]")
         }

@@ -56,11 +56,4 @@ class SearchService(
         if (text.length <= maxLen) return text
         return text.take(maxLen) + "..."
     }
-
-    data class SearchResultDto(
-        val id: Long,
-        val title: String,
-        val contentSnippet: String,
-        val similarityPercent: Double,
-    )
 }

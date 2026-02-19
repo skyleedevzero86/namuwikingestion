@@ -105,7 +105,7 @@ class HybridSearchService(
             val ftExplain = async(Dispatchers.IO) {
                 if (!enableBm25) "[]"
                 else try {
-                    docRepository.explainFullTextSearch(q, 50, "simple")
+                    docRepository.explainFullTextSearch(q, 50)
                 } catch (e: Exception) {
                     logger.warn(e) { "explainFullTextSearch 실패, []" }
                     "[]"
@@ -117,13 +117,12 @@ class HybridSearchService(
         val queryExplanation = mergeExplainJson(vectorExplainJson, fulltextExplainJson)
         val generatedSql = buildGeneratedSqlFromRepository(q, useVector, enableBm25)
 
-        data class DocInfo(val id: Long, val title: String, val content: String, val distance: Double)
-        val scoresById = mutableMapOf<Long, Pair<Double, DocInfo>>()
+        val scoresById = mutableMapOf<Long, Pair<Double, HybridSearchDocInfo>>()
 
         vectorRows.forEach { row ->
             val sim = (2.0 - row.distance.coerceIn(0.0, 2.0)) / 2.0
             val score = semanticWeight * sim
-            scoresById[row.id] = (scoresById[row.id]?.first?.plus(score) ?: score) to DocInfo(row.id, row.title, row.content, row.distance)
+            scoresById[row.id] = (scoresById[row.id]?.first?.plus(score) ?: score) to HybridSearchDocInfo(row.id, row.title, row.content, row.distance)
         }
 
         textRows.forEach { row ->
@@ -131,7 +130,7 @@ class HybridSearchService(
             val normRank = 1.0 / (60.0 + rank)
             val score = kwWeight * normRank * 61.0
             val current = scoresById[row.id]
-            val docInfo = current?.second ?: DocInfo(row.id, row.title, row.content, 1.0)
+            val docInfo = current?.second ?: HybridSearchDocInfo(row.id, row.title, row.content, 1.0)
             scoresById[row.id] = ((current?.first ?: 0.0) + score) to docInfo
         }
 
@@ -174,7 +173,7 @@ class HybridSearchService(
             sqlParts.add("-- 벡터 (embedding-server)\n" + docRepository.getVectorSearchSqlForDisplay(50))
         }
         if (useBm25) {
-            sqlParts.add("-- 전문 검색 (BM25)\n" + docRepository.getFullTextSearchSqlForDisplay(50, "simple", query))
+            sqlParts.add("-- 전문 검색 (BM25)\n" + docRepository.getFullTextSearchSqlForDisplay(50, null, query))
         }
         return when {
             sqlParts.isNotEmpty() -> sqlParts.joinToString("\n\n")
@@ -182,12 +181,4 @@ class HybridSearchService(
         }
     }
 
-    data class HybridSearchResult(val results: List<HybridSearchResultDto>, val generatedSql: String, val queryExplanation: String)
-    data class HybridSearchResultDto(
-        val id: Long,
-        val title: String,
-        val contentSnippet: String,
-        val similarityPercent: Double,
-        val totalScore: Double,
-    )
 }

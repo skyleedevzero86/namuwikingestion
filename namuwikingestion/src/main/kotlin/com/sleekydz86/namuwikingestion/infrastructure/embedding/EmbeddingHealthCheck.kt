@@ -50,6 +50,4 @@ class EmbeddingHealthCheck(
     }
 
     private data class HealthResponse(val status: String?, val model: String?)
-
-    data class EmbeddingHealthResult(val ok: Boolean, val healthUrl: String?, val model: String?)
 }

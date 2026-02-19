@@ -78,21 +78,4 @@ class IngestionController(
             )
         )
     }
-
-    data class EmbeddingHealthResponse(val ok: Boolean, val healthUrl: String?, val model: String?)
-    data class IngestionResponse(val message: String)
-
-    data class ProgressResponse(
-        val status: String,
-        val rowsRead: Int,
-        val inserted: Int,
-        val startedAt: Long?,
-        val finishedAt: Long?,
-        val errorMessage: String?,
-        val history: List<SnapshotDto>,
-    )
-
-    data class SnapshotDto(val at: Long, val rowsRead: Int, val inserted: Int)
-
-    data class StatsResponse(val documentCount: Long)
 }

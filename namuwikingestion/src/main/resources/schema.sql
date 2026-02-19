@@ -10,7 +10,10 @@ CREATE TABLE IF NOT EXISTS namuwiki_doc (
     created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
-CREATE INDEX IF NOT EXISTS namuwiki_doc_embedding_idx ON namuwiki_doc
+CREATE INDEX IF NOT EXISTS namuwiki_doc_embedding_hnsw ON namuwiki_doc
+    USING hnsw (embedding vector_cosine_ops);
+
+CREATE INDEX IF NOT EXISTS namuwiki_doc_embedding_ivf ON namuwiki_doc
     USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 CREATE TABLE IF NOT EXISTS search_ui_config (

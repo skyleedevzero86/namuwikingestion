@@ -102,6 +102,4 @@ class NamuwikiIngestionService(
             )
         }
     }
-
-    data class IngestionResult(val totalRowsRead: Int, val totalInserted: Int)
 }

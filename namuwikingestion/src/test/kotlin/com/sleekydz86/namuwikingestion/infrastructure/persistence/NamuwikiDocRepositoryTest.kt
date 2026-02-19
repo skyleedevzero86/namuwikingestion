@@ -1,6 +1,7 @@
 package com.sleekydz86.namuwikingestion.infrastructure.persistence
 
 import com.sleekydz86.namuwikingestion.dataclass.NamuwikiDoc
+import com.sleekydz86.namuwikingestion.global.config.FullTextSearchConfig
 import com.sleekydz86.namuwikingestion.global.config.InsertConfig
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -18,7 +19,8 @@ class NamuwikiDocRepositoryTest {
 
     private val jdbc: JdbcTemplate = mock()
     private val insertConfig = InsertConfig(batchSize = 100)
-    private val repo = NamuwikiDocRepository(jdbc, insertConfig)
+    private val fullTextSearchConfig = FullTextSearchConfig(fulltextRegconfig = "simple", rrfK = 60)
+    private val repo = NamuwikiDocRepository(jdbc, insertConfig, fullTextSearchConfig)
 
     @Test
     fun `insertBatch - 빈 리스트면 batchUpdate 호출 안 함`() {

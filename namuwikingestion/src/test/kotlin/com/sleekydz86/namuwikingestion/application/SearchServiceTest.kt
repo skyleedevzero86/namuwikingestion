@@ -2,6 +2,7 @@ package com.sleekydz86.namuwikingestion.application
 
 import com.sleekydz86.namuwikingestion.domain.port.EmbeddingClient
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.NamuwikiDocRepository
+import com.sleekydz86.namuwikingestion.infrastructure.persistence.VectorSearchRow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -42,7 +43,7 @@ class SearchServiceTest {
         val query = "테스트"
         val vec = FloatArray(384) { 0.1f }
         whenever(embeddingClient.embedBatch(listOf(query))).thenReturn(listOf(vec))
-        val lowSimilarityRow = NamuwikiDocRepository.VectorSearchRow(
+        val lowSimilarityRow = VectorSearchRow(
             id = 1L,
             title = "제목",
             content = "내용",
@@ -60,7 +61,7 @@ class SearchServiceTest {
         val query = "나무"
         val vec = FloatArray(384) { 0.1f }
         whenever(embeddingClient.embedBatch(listOf(query))).thenReturn(listOf(vec))
-        val row = NamuwikiDocRepository.VectorSearchRow(
+        val row = VectorSearchRow(
             id = 1L,
             title = "나무위키",
             content = "나무위키 내용",

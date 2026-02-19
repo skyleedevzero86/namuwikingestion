@@ -1,25 +1,8 @@
 package com.sleekydz86.namuwikingestion.global.config
 
-import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 
 @Configuration
-@EnableConfigurationProperties(EmbeddingConfig::class, DatasetConfig::class, InsertConfig::class)
-class NamuwikiIngestionConfig {}
-
-@ConfigurationProperties(prefix = "namuwiki.dataset")
-data class DatasetConfig(
-    val hfDataset: String = "heegyu/namuwiki",
-    val hfCommit: String? = null,
-    val parquetFileName: String? = null,
-    val split: String = "train",
-    val limit: Int = 0,
-    val localParquetPath: String? = null,
-    val downloadDir: String? = null,
-)
-
-@ConfigurationProperties(prefix = "namuwiki.insert")
-data class InsertConfig(
-    val batchSize: Int = 100,
-)
+@EnableConfigurationProperties(EmbeddingConfig::class, DatasetConfig::class, InsertConfig::class, FullTextSearchConfig::class)
+class NamuwikiIngestionConfig
