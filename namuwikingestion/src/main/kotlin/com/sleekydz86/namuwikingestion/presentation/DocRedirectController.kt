@@ -7,5 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping
 class DocRedirectController {
 
     @GetMapping("/doc", "/doc/")
-    fun redirectToSwaggerUi(): String = "redirect:/swagger-ui/index.html"
+    fun redirectToSwaggerUi(): String = "redirect:/api-docs-unified.html"
+
+    @GetMapping("/swagger-ui", "/swagger-ui/", "/swagger-ui.html")
+    fun redirectToUnified(): String = "redirect:/api-docs-unified.html"
 }

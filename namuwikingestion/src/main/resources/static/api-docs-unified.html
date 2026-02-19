@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>통합 API 문서 - 나무위키</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@4.18.3/swagger-ui.css">
+  <style>
+    #api-selector { margin: 10px 0 0 20px; font-size: 14px; }
+    #api-selector select { padding: 6px 10px; margin-left: 6px; }
+  </style>
+</head>
+<body>
+  <div id="api-selector">
+    <label>API 선택:</label>
+    <select id="api-select">
+      <option value="spring">나무위키 수집 API (Spring)</option>
+      <option value="embedding">나무위키 임베딩 API (FastAPI)</option>
+    </select>
+  </div>
+  <div id="swagger-ui-wrapper">
+    <div id="swagger-ui"></div>
+  </div>
+  <script src="https://unpkg.com/swagger-ui-dist@4.18.3/swagger-ui-bundle.js"></script>
+  <script>
+    const base = window.location.origin;
+    const endpoints = {
+      spring: base + "/v3/api-docs",
+      embedding: base + "/embedding-openapi.json"
+    };
+
+    function ensureOpenApi30(spec) {
+      if (!spec || typeof spec !== "object") {
+        return { openapi: "3.0.0", info: { title: "API", description: "스펙을 불러올 수 없습니다." }, paths: {} };
+      }
+      spec = JSON.parse(JSON.stringify(spec));
+      if (spec.openapi && spec.openapi.startsWith("3.1")) spec.openapi = "3.0.0";
+      if (!spec.openapi) spec.openapi = "3.0.0";
+      if (!spec.info) spec.info = { title: "API", description: "" };
+      if (!spec.paths) spec.paths = {};
+      return spec;
+    }
+
+    function loadSpec(url) {
+      return fetch(url).then(function(r) {
+        if (!r.ok) throw new Error(r.status + " " + r.statusText);
+        return r.json();
+      }).then(ensureOpenApi30);
+    }
+
+    function showError(msg) {
+      var wrapper = document.getElementById("swagger-ui-wrapper");
+      wrapper.innerHTML = "<p style='margin:20px;color:#c00'>" + msg + "</p>";
+      var div = document.createElement("div");
+      div.id = "swagger-ui";
+      wrapper.appendChild(div);
+    }
+
+    function renderUi(spec) {
+      var wrapper = document.getElementById("swagger-ui-wrapper");
+      wrapper.innerHTML = "";
+      var div = document.createElement("div");
+      div.id = "swagger-ui";
+      wrapper.appendChild(div);
+      if (window.ui) window.ui = null;
+      window.ui = SwaggerUIBundle({
+        spec: spec,
+        dom_id: "#swagger-ui",
+        deepLinking: true,
+        validatorUrl: null,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIBundle.SwaggerUIStandalonePreset
+        ]
+      });
+    }
+
+    window.onload = function() {
+      loadSpec(endpoints.spring)
+        .then(function(spec) { renderUi(spec); })
+        .catch(function(err) { showError("스펙 로드 실패: " + err.message); });
+
+      document.getElementById("api-select").addEventListener("change", function() {
+        var key = this.value;
+        loadSpec(endpoints[key])
+          .then(function(spec) { renderUi(spec); })
+          .catch(function(err) { showError("스펙 로드 실패 (" + key + "): " + err.message); });
+      });
+    };
+  </script>
+</body>
+</html>

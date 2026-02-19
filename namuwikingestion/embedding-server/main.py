@@ -2,13 +2,11 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-
-UNIFIED_SWAGGER_UI_URL = os.environ.get("UNIFIED_SWAGGER_UI_URL", "").strip()  # 설정 시 /docs 접속 시 통합 Swagger UI(Spring)로 리다이렉트
 
 model: SentenceTransformer | None = None
 
@@ -29,7 +27,36 @@ app = FastAPI(
     description="나무위키 수집용 임베딩 서비스. POST /embed로 텍스트 임베딩, GET /health로 헬스 체크.",
     version="1.0",
     lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
 )
+
+SPRING_APP_URL = os.environ.get("SPRING_APP_URL", "http://localhost:8081")
+UNIFIED_DOCS_URL = f"{SPRING_APP_URL}/api-docs-unified.html"
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def api_docs_entry():
+    return f"""<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>API 문서</title></head>
+<body>
+  <h1>나무위키 API 문서</h1>
+  <ul>
+    <li><a href="{UNIFIED_DOCS_URL}">통합 API 문서 (수집 + 임베딩)</a></li>
+  </ul>
+</body>
+</html>"""
+
+
+@app.get("/docs", response_class=RedirectResponse, include_in_schema=False)
+def redirect_docs_to_unified():
+    return RedirectResponse(url=UNIFIED_DOCS_URL)
+
+
+@app.get("/api-docs-unified", response_class=RedirectResponse, include_in_schema=False)
+def redirect_to_unified_docs():
+    return RedirectResponse(url=UNIFIED_DOCS_URL)
 
 
 class EmbedRequest(BaseModel):
@@ -75,12 +102,3 @@ def health() -> HealthResponse:
     return HealthResponse(status="정상", model=MODEL_NAME)
 
 
-if UNIFIED_SWAGGER_UI_URL:
-
-    @app.get("/docs", include_in_schema=False)
-    def docs_redirect():
-        return RedirectResponse(url=UNIFIED_SWAGGER_UI_URL, status_code=302)
-
-    @app.get("/docs-unified", include_in_schema=False)
-    def docs_unified_redirect():
-        return RedirectResponse(url=UNIFIED_SWAGGER_UI_URL, status_code=302)
