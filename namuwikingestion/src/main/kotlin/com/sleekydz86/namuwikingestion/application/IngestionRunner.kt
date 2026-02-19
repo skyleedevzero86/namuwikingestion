@@ -1,6 +1,6 @@
 package com.sleekydz86.namuwikingestion.application
 
-import io.github.oshai.kotlinlogging.KotlinLogging
+import mu.KotlinLogging
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
 

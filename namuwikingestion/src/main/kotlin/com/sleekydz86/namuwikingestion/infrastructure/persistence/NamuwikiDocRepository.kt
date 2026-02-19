@@ -3,7 +3,7 @@ package com.sleekydz86.namuwikingestion.infrastructure.persistence
 import com.pgvector.PGvector
 import com.sleekydz86.namuwikingestion.dataclass.NamuwikiDoc
 import com.sleekydz86.namuwikingestion.global.config.InsertConfig
-import io.github.oshai.kotlinlogging.KotlinLogging
+import mu.KotlinLogging
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
@@ -75,9 +75,9 @@ class NamuwikiDocRepository(
 
     private fun fullTextSearchSql(limit: Int, config: String) = """
         SELECT id, title, content,
-               ts_rank(to_tsvector(?, title || ' ' || content), plainto_tsquery(?, ?)) AS r
+               ts_rank(to_tsvector(?::regconfig, title || ' ' || content), plainto_tsquery(?::regconfig, ?)) AS r
         FROM namuwiki_doc
-        WHERE to_tsvector(?, title || ' ' || content) @@ plainto_tsquery(?, ?)
+        WHERE to_tsvector(?::regconfig, title || ' ' || content) @@ plainto_tsquery(?::regconfig, ?)
         ORDER BY r DESC
         LIMIT $limit
     """.trimIndent()
@@ -157,9 +157,9 @@ WITH vector_results AS (
   LIMIT 50
 ),
 text_results AS (
-  SELECT id, ROW_NUMBER() OVER (ORDER BY ts_rank(to_tsvector(?, title || ' ' || content), plainto_tsquery(?, ?)) DESC) AS r
+  SELECT id, ROW_NUMBER() OVER (ORDER BY ts_rank(to_tsvector(?::regconfig, title || ' ' || content), plainto_tsquery(?::regconfig, ?)) DESC) AS r
   FROM namuwiki_doc
-  WHERE to_tsvector(?, title || ' ' || content) @@ plainto_tsquery(?, ?)
+  WHERE to_tsvector(?::regconfig, title || ' ' || content) @@ plainto_tsquery(?::regconfig, ?)
   LIMIT 50
 ),
 fusion AS (

@@ -3,7 +3,7 @@ package com.sleekydz86.namuwikingestion.infrastructure.embedding
 import com.sleekydz86.namuwikingestion.global.config.EmbeddingConfig
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import io.github.oshai.kotlinlogging.KotlinLogging
+import mu.KotlinLogging
 import org.springframework.stereotype.Component
 import okhttp3.OkHttpClient
 import okhttp3.Request

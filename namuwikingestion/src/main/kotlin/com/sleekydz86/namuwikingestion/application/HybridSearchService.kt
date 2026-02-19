@@ -5,7 +5,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.sleekydz86.namuwikingestion.domain.port.EmbeddingClient
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.NamuwikiDocRepository
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.SearchUiConfigRepository
-import io.github.oshai.kotlinlogging.KotlinLogging
+import mu.KotlinLogging
 import org.springframework.stereotype.Service
 
 private val logger = KotlinLogging.logger {}
@@ -122,14 +122,14 @@ class HybridSearchService(
     private fun buildGeneratedSqlFromRepository(query: String, useVector: Boolean, useBm25: Boolean): String {
         val sqlParts = mutableListOf<String>()
         if (useVector) {
-            sqlParts.add("-- Vector (embedding from embedding-server)\n" + docRepository.getVectorSearchSqlForDisplay(50))
+            sqlParts.add("-- 벡터 (embedding-server)\n" + docRepository.getVectorSearchSqlForDisplay(50))
         }
         if (useBm25) {
-            sqlParts.add("-- Full-text (BM25)\n" + docRepository.getFullTextSearchSqlForDisplay(50, "simple", query))
+            sqlParts.add("-- 전문 검색 (BM25)\n" + docRepository.getFullTextSearchSqlForDisplay(50, "simple", query))
         }
         return when {
             sqlParts.isNotEmpty() -> sqlParts.joinToString("\n\n")
-            else -> searchUiConfigRepository.getValue("search2.noSearchSqlPlaceholder") ?: "-- Enable Vector or BM25"
+            else -> searchUiConfigRepository.getValue("search2.noSearchSqlPlaceholder") ?: "벡터 또는 BM25 사용"
         }
     }
 

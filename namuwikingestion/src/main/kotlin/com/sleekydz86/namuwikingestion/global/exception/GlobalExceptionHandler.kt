@@ -1,6 +1,6 @@
 package com.sleekydz86.namuwikingestion.global.exception
 
-import io.github.oshai.kotlinlogging.KotlinLogging
+import mu.KotlinLogging
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.http.HttpStatus

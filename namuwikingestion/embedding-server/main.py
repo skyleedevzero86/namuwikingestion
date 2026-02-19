@@ -30,20 +30,14 @@ app = FastAPI(
 
 
 class EmbedRequest(BaseModel):
-    """임베딩할 텍스트 목록 요청 본문."""
-
     texts: list[str]
 
 
 class EmbedResponse(BaseModel):
-    """응답: 입력 텍스트당 하나의 임베딩 벡터 목록."""
-
     embeddings: list[list[float]]
 
 
 class HealthResponse(BaseModel):
-    """헬스 체크 응답."""
-
     status: str
     model: str
 

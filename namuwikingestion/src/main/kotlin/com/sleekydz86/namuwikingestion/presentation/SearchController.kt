@@ -1,7 +1,7 @@
 package com.sleekydz86.namuwikingestion.presentation
 
 import com.sleekydz86.namuwikingestion.application.SearchService
-import io.github.oshai.kotlinlogging.KotlinLogging
+import mu.KotlinLogging
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping

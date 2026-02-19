@@ -1,6 +1,6 @@
 package com.sleekydz86.namuwikingestion.infrastructure.persistence
 
-import io.github.oshai.kotlinlogging.KotlinLogging
+import mu.KotlinLogging
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 

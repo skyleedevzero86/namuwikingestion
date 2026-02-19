@@ -2,7 +2,7 @@ package com.sleekydz86.namuwikingestion.presentation
 
 import com.sleekydz86.namuwikingestion.application.HybridSearchService
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.SearchUiConfigRepository
-import io.github.oshai.kotlinlogging.KotlinLogging
+import mu.KotlinLogging
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
@@ -31,8 +31,8 @@ class Search2Controller(
         model.addAttribute("keywordWeight", keywordWeight.coerceIn(0.0, 1.0))
         model.addAttribute("semanticWeight", (1.0 - keywordWeight).coerceIn(0.0, 1.0))
 
-        model.addAttribute("sqlSectionLabel", searchUiConfigRepository.getValue("search2.sqlSectionLabel") ?: "Generated SQL")
-        model.addAttribute("explanationSectionLabel", searchUiConfigRepository.getValue("search2.explanationSectionLabel") ?: "Query Explanation")
+        model.addAttribute("sqlSectionLabel", searchUiConfigRepository.getValue("search2.sqlSectionLabel") ?: "생성된 SQL")
+        model.addAttribute("explanationSectionLabel", searchUiConfigRepository.getValue("search2.explanationSectionLabel") ?: "쿼리 설명")
 
         if (!q.isNullOrBlank()) {
             val result = try {
