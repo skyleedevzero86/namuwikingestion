@@ -5,7 +5,10 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.sleekydz86.namuwikingestion.domain.port.EmbeddingClient
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.NamuwikiDocRepository
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.SearchUiConfigRepository
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
+
+private val logger = KotlinLogging.logger {}
 
 @Service
 class HybridSearchService(
@@ -36,7 +39,8 @@ class HybridSearchService(
         val vectorRows = if (queryVector != null) {
             vectorExplainJson = try {
                 docRepository.explainVectorSearch(queryVector, vectorLimit)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                logger.warn(e) { "explainVectorSearch 실패, []로 대체" }
                 "[]"
             }
             docRepository.searchByVector(queryVector, 50)
@@ -53,7 +57,8 @@ class HybridSearchService(
         if (useVector && enableBm25 && queryVector != null) {
             queryExplanation = try {
                 docRepository.explainUnifiedHybridSearch(queryVector, q, limit, semanticWeight, kwWeight)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                logger.warn(e) { "explainUnifiedHybridSearch 실패, mergeExplainJson으로 대체" }
                 mergeExplainJson(vectorExplainJson, docRepository.explainFullTextSearch(q, 50, "simple"))
             }
             generatedSql = docRepository.getUnifiedHybridSqlForDisplay(q, limit, semanticWeight, kwWeight)
@@ -108,7 +113,8 @@ class HybridSearchService(
             val v: List<Any> = objectMapper.readValue(vectorExplain)
             val f: List<Any> = objectMapper.readValue(fulltextExplain)
             objectMapper.writeValueAsString(v + f)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger.warn(e) { "mergeExplainJson 실패, 원본 문자열 이어붙임" }
             "[$vectorExplain, $fulltextExplain]"
         }
     }

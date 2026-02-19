@@ -1,7 +1,10 @@
 package com.sleekydz86.namuwikingestion.application
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Component
+
+private val logger = KotlinLogging.logger {}
 
 @Component
 class IngestionRunner(
@@ -12,7 +15,8 @@ class IngestionRunner(
     fun runAsync() {
         try {
             ingestionService.runIngestion()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger.warn(e) { "runAsync: 수집 실패 (NamuwikiIngestionService에서 progressHolder.error 이미 호출됨)" }
         }
     }
 }

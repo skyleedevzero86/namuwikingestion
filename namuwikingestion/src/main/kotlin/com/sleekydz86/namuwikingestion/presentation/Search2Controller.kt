@@ -2,10 +2,13 @@ package com.sleekydz86.namuwikingestion.presentation
 
 import com.sleekydz86.namuwikingestion.application.HybridSearchService
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.SearchUiConfigRepository
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
+
+private val logger = KotlinLogging.logger {}
 
 @Controller
 class Search2Controller(
@@ -40,7 +43,8 @@ class Search2Controller(
                     keywordWeight = keywordWeight.coerceIn(0.0, 1.0),
                     limit = limit.coerceIn(1, 100),
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                logger.warn(e) { "search2 실패, query=$q, 오류 플레이스홀더 반환" }
                 val errSql = searchUiConfigRepository.getValue("search2.errorSqlPlaceholder") ?: "-- 오류 발생"
                 val errExplain = searchUiConfigRepository.getValue("search2.errorExplanationPlaceholder") ?: "[]"
                 HybridSearchService.HybridSearchResult(emptyList(), errSql, errExplain)

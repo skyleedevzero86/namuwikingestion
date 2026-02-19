@@ -3,11 +3,14 @@ package com.sleekydz86.namuwikingestion.infrastructure.embedding
 import com.sleekydz86.namuwikingestion.global.config.EmbeddingConfig
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Component
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.URI
 import java.util.concurrent.TimeUnit
+
+private val logger = KotlinLogging.logger {}
 
 @Component
 class EmbeddingHealthCheck(
@@ -34,7 +37,8 @@ class EmbeddingHealthCheck(
                 val parsed = objectMapper.readValue<HealthResponse>(body)
                 EmbeddingHealthResult(ok = true, healthUrl = healthUrl, model = parsed.model)
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger.warn(e) { "임베딩 헬스 체크 실패, healthUrl=$healthUrl" }
             EmbeddingHealthResult(ok = false, healthUrl = healthUrl, model = null)
         }
     }

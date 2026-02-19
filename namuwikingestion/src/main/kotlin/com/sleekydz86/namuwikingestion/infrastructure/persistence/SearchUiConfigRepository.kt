@@ -1,7 +1,10 @@
 package com.sleekydz86.namuwikingestion.infrastructure.persistence
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
+
+private val logger = KotlinLogging.logger {}
 
 @Repository
 class SearchUiConfigRepository(private val jdbc: JdbcTemplate) {
@@ -12,7 +15,8 @@ class SearchUiConfigRepository(private val jdbc: JdbcTemplate) {
             String::class.java,
             key,
         )
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        logger.warn(e) { "getValue 실패, key=$key, null 반환" }
         null
     }
 
@@ -23,7 +27,8 @@ class SearchUiConfigRepository(private val jdbc: JdbcTemplate) {
             "$prefix%",
         ) ?: emptyList()
         rows.toMap()
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        logger.warn(e) { "getAllByPrefix 실패, prefix=$prefix, 빈 맵 반환" }
         emptyMap()
     }
 }

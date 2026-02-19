@@ -1,10 +1,13 @@
 package com.sleekydz86.namuwikingestion.presentation
 
 import com.sleekydz86.namuwikingestion.application.SearchService
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
+
+private val logger = KotlinLogging.logger {}
 
 @Controller
 class SearchController(
@@ -22,6 +25,7 @@ class SearchController(
             val results = try {
                 searchService.search(q.trim(), limit.coerceIn(1, 100))
             } catch (e: Exception) {
+                logger.warn(e) { "search 실패, query=$q, 빈 결과 반환" }
                 emptyList<SearchService.SearchResultDto>()
             }
             model.addAttribute("results", results)

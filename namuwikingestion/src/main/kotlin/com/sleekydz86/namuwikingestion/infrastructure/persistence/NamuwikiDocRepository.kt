@@ -1,13 +1,15 @@
 package com.sleekydz86.namuwikingestion.infrastructure.persistence
 
-
 import com.pgvector.PGvector
 import com.sleekydz86.namuwikingestion.dataclass.NamuwikiDoc
 import com.sleekydz86.namuwikingestion.global.config.InsertConfig
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
 import java.sql.ResultSet
+
+private val logger = KotlinLogging.logger {}
 
 @Repository
 class NamuwikiDocRepository(
@@ -34,7 +36,8 @@ class NamuwikiDocRepository(
 
     fun count(): Long = try {
         jdbc.queryForObject("SELECT COUNT(*) FROM namuwiki_doc", Long::class.java) ?: 0L
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        logger.warn(e) { "count() 실패, 0 반환" }
         0L
     }
 
@@ -64,7 +67,8 @@ class NamuwikiDocRepository(
         return try {
             val list = jdbc.query(sql, { rs, _ -> rs.getString(1) }, v, v)
             list?.firstOrNull() ?: "[]"
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger.warn(e) { "explainVectorSearch 실패, [] 반환" }
             "[]"
         }
     }
@@ -82,7 +86,8 @@ class NamuwikiDocRepository(
         if (query.isBlank()) return emptyList()
         return try {
             jdbc.query(fullTextSearchSql(limit, config), FULLTEXT_ROW_MAPPER, config, config, query, config, config, query)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger.warn(e) { "searchByFullText 실패, query=$query, 빈 목록 반환" }
             emptyList()
         }
     }
@@ -104,7 +109,8 @@ class NamuwikiDocRepository(
         return try {
             val list = jdbc.query(sql, { rs, _ -> rs.getString(1) }, config, config, query, config, config, query)
             list?.firstOrNull() ?: "[]"
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger.warn(e) { "explainFullTextSearch 실패, query=$query, [] 반환" }
             "[]"
         }
     }
@@ -190,7 +196,8 @@ LIMIT ?
                 limit,
             )
             list?.firstOrNull() ?: "[]"
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger.warn(e) { "explainUnifiedHybridSearch 실패, [] 반환" }
             "[]"
         }
     }
