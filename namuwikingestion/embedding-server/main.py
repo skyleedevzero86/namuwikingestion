@@ -2,10 +2,13 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+
+UNIFIED_SWAGGER_UI_URL = os.environ.get("UNIFIED_SWAGGER_UI_URL", "").strip()  # 설정 시 /docs 접속 시 통합 Swagger UI(Spring)로 리다이렉트
 
 model: SentenceTransformer | None = None
 
@@ -70,3 +73,14 @@ def embed(request: EmbedRequest) -> EmbedResponse:
 )
 def health() -> HealthResponse:
     return HealthResponse(status="정상", model=MODEL_NAME)
+
+
+if UNIFIED_SWAGGER_UI_URL:
+
+    @app.get("/docs", include_in_schema=False)
+    def docs_redirect():
+        return RedirectResponse(url=UNIFIED_SWAGGER_UI_URL, status_code=302)
+
+    @app.get("/docs-unified", include_in_schema=False)
+    def docs_unified_redirect():
+        return RedirectResponse(url=UNIFIED_SWAGGER_UI_URL, status_code=302)
