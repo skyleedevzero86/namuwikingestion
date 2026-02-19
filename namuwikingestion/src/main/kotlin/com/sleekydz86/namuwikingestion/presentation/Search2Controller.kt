@@ -26,6 +26,7 @@ class Search2Controller(
         model: Model,
     ): String {
         model.addAttribute("query", q ?: "")
+        model.addAttribute("searchKeywords", toSearchKeywords(q))
         model.addAttribute("vectorMode", vectorMode.ifBlank { "IVF" })
         model.addAttribute("enableBm25", enableBm25 ?: true)
         model.addAttribute("keywordWeight", keywordWeight.coerceIn(0.0, 1.0))
@@ -58,5 +59,10 @@ class Search2Controller(
             model.addAttribute("queryExplanation", searchUiConfigRepository.getValue("search2.emptyExplanationPlaceholder") ?: "[]")
         }
         return "search2"
+    }
+
+    private fun toSearchKeywords(q: String?): List<String> {
+        if (q.isNullOrBlank()) return emptyList()
+        return q.trim().split(Regex("\\s+")).map { it.trim() }.filter { it.isNotBlank() }.distinct()
     }
 }

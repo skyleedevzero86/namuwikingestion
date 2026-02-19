@@ -1,156 +1,459 @@
-<!DOCTYPE html>
+<!doctype html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vector Search with Explain</title>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 24px; background: #0f0f12; color: #e4e4e7; }
-        a { color: #3b82f6; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .nav-link { font-size: 0.875rem; color: #71717a; margin-bottom: 20px; }
-        h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 24px 0; color: #fafafa; }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #0f0f12;
+        color: #e4e4e7;
+      }
+      a {
+        color: #3b82f6;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .nav-link {
+        font-size: 0.875rem;
+        color: #71717a;
+        margin-bottom: 20px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0 0 24px 0;
+        color: #fafafa;
+      }
 
-        .search-block { margin-bottom: 20px; }
-        .search-block .label { display: block; font-size: 0.875rem; color: #a1a1aa; margin-bottom: 6px; }
-        .search-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-        .search-input { flex: 1; min-width: 320px; padding: 10px 14px; border-radius: 6px; border: 1px solid #27272a; background: #18181b; color: #e4e4e7; font-size: 1rem; }
-        .search-input:focus { outline: none; border-color: #3b82f6; }
-        .search-input::placeholder { color: #71717a; }
-        .btn { padding: 10px 20px; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-primary { background: #3b82f6; color: #fff; }
-        .btn-primary:hover { background: #2563eb; }
+      .search-block {
+        margin-bottom: 20px;
+      }
+      .search-block .label {
+        display: block;
+        font-size: 0.875rem;
+        color: #a1a1aa;
+        margin-bottom: 6px;
+      }
+      .search-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .search-input {
+        flex: 1;
+        min-width: 320px;
+        padding: 10px 14px;
+        border-radius: 6px;
+        border: 1px solid #27272a;
+        background: #18181b;
+        color: #e4e4e7;
+        font-size: 1rem;
+      }
+      .search-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+      }
+      .search-input::placeholder {
+        color: #71717a;
+      }
+      .btn {
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn-primary {
+        background: #3b82f6;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #2563eb;
+      }
 
-        .options { margin: 20px 0; }
-        .option-group { margin-bottom: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .option-group .label { font-size: 0.875rem; color: #a1a1aa; min-width: 140px; }
-        .radio-group { display: flex; gap: 20px; }
-        .radio-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: normal; color: #e4e4e7; }
-        .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #e4e4e7; }
-        .slider-row { margin: 18px 0; }
-        .slider-row .label { display: block; font-size: 0.875rem; color: #a1a1aa; margin-bottom: 8px; }
-        .slider-wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-        .slider-wrap .slider-label { font-size: 0.875rem; color: #71717a; min-width: 100px; }
-        input[type="range"] { width: 240px; accent-color: #3b82f6; }
-        .slider-wrap .slider-label.right { text-align: right; }
+      .options {
+        margin: 20px 0;
+      }
+      .option-group {
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .option-group .label {
+        font-size: 0.875rem;
+        color: #a1a1aa;
+        min-width: 140px;
+      }
+      .radio-group {
+        display: flex;
+        gap: 20px;
+      }
+      .radio-group label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-weight: normal;
+        color: #e4e4e7;
+      }
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: #e4e4e7;
+      }
+      .slider-row {
+        margin: 18px 0;
+      }
+      .slider-row .label {
+        display: block;
+        font-size: 0.875rem;
+        color: #a1a1aa;
+        margin-bottom: 8px;
+      }
+      .slider-wrap {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .slider-wrap .slider-label {
+        font-size: 0.875rem;
+        color: #71717a;
+        min-width: 100px;
+      }
+      input[type="range"] {
+        width: 240px;
+        accent-color: #3b82f6;
+      }
+      .slider-wrap .slider-label.right {
+        text-align: right;
+      }
 
-        .section { background: #18181b; border: 1px solid #27272a; border-radius: 8px; margin: 24px 0; overflow: hidden; }
-        .section-header { padding: 12px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 0.875rem; background: #27272a; color: #3b82f6; }
-        .section-header:hover { background: #3f3f46; }
-        .section-header .caret { font-size: 0.75rem; color: #a1a1aa; }
-        .section-body { padding: 16px; border-top: 1px solid #27272a; font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 0.75rem; line-height: 1.5; color: #a1a1aa; white-space: pre-wrap; word-break: break-all; max-height: 420px; overflow-y: auto; background: #0f0f12; }
+      .section {
+        background: #18181b;
+        border: 1px solid #27272a;
+        border-radius: 8px;
+        margin: 24px 0;
+        overflow: hidden;
+      }
+      .section-header {
+        padding: 12px 16px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        font-size: 0.875rem;
+        background: #27272a;
+        color: #3b82f6;
+      }
+      .section-header:hover {
+        background: #3f3f46;
+      }
+      .section-header .caret {
+        font-size: 0.75rem;
+        color: #a1a1aa;
+      }
+      .section-body {
+        padding: 16px;
+        border-top: 1px solid #27272a;
+        font-family: ui-monospace, "Cascadia Code", monospace;
+        font-size: 0.75rem;
+        line-height: 1.5;
+        color: #a1a1aa;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 420px;
+        overflow-y: auto;
+        background: #0f0f12;
+      }
 
-        .result-list { display: flex; flex-direction: column; gap: 16px; margin-top: 28px; }
-        .result-card { background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 20px; }
-        .result-card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-        .result-card-title { font-size: 1.125rem; font-weight: 600; margin: 0; color: #fafafa; }
-        .similarity-badge { background: #22c55e; color: #fff; font-size: 0.75rem; font-weight: 500; padding: 4px 10px; border-radius: 9999px; white-space: nowrap; }
-        .result-card-content { font-size: 0.875rem; line-height: 1.6; color: #a1a1aa; white-space: pre-wrap; word-break: break-word; }
+      .result-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-top: 28px;
+      }
+      .result-card {
+        background: #18181b;
+        border: 1px solid #27272a;
+        border-radius: 8px;
+        padding: 20px;
+      }
+      .result-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+      }
+      .result-card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+        color: #fafafa;
+      }
+      .similarity-badge {
+        background: #22c55e;
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        white-space: nowrap;
+      }
+      .result-card-content {
+        font-size: 0.875rem;
+        line-height: 1.6;
+        color: #a1a1aa;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .hashtags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+        align-items: center;
+      }
+      .hashtag {
+        background: #27272a;
+        color: #3b82f6;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        user-select: none;
+      }
+      .hashtag:hover {
+        background: #3f3f46;
+      }
     </style>
-</head>
-<body>
-<div class="nav-link"><a th:href="@{/}">← 대시보드</a> · <a th:href="@{/search}">벡터 검색</a></div>
-<h1>Vector Search with Explain</h1>
+  </head>
+  <body>
+    <div class="nav-link">
+      <a th:href="@{/}">← 대시보드</a> · <a th:href="@{/search}">벡터 검색</a>
+    </div>
+    <h1>Vector Search with Explain</h1>
 
-<form th:action="@{/search2}" method="get">
-    <div class="search-block">
+    <form th:action="@{/search2}" method="get">
+      <div class="search-block">
         <label class="label" for="q">Search Query</label>
         <div class="search-row">
-            <input type="text" id="q" name="q" class="search-input" th:value="${query}" placeholder="기술적으로는 뛰어났지만 시장에서는 실패한 제품의 사례는 무엇인가?" />
-            <button type="submit" class="btn btn-primary">🔍 SEARCH</button>
+          <input
+            type="text"
+            id="q"
+            name="q"
+            class="search-input"
+            th:value="${query}"
+            placeholder="기술적으로는 뛰어났지만 시장에서는 실패한 제품의 사례는 무엇인가?"
+          />
+          <button type="submit" class="btn btn-primary">🔍 SEARCH</button>
         </div>
-    </div>
+        <div
+          class="hashtags"
+          id="hashtags"
+          th:if="${searchKeywords != null and !#lists.isEmpty(searchKeywords)}"
+        >
+          <span th:each="kw : ${searchKeywords}" class="hashtag" th:attr="data-keyword=${kw}" role="button" tabindex="0"
+            >#<span th:text="${kw}"></span
+          ></span>
+        </div>
+      </div>
 
-    <div class="options">
+      <div class="options">
         <div class="option-group">
-            <span class="label">Vector Search Mode</span>
-            <div class="radio-group">
-                <label><input type="radio" name="vectorMode" value="NONE" th:checked="${vectorMode == 'NONE'}"> NONE</label>
-                <label><input type="radio" name="vectorMode" value="HNSW" th:checked="${vectorMode == 'HNSW'}"> HNSW</label>
-                <label><input type="radio" name="vectorMode" value="IVF" th:checked="${vectorMode == 'IVF'}"> IVF</label>
-            </div>
+          <span class="label">Vector Search Mode</span>
+          <div class="radio-group">
+            <label
+              ><input
+                type="radio"
+                name="vectorMode"
+                value="NONE"
+                th:checked="${vectorMode == 'NONE'}"
+              />
+              NONE</label
+            >
+            <label
+              ><input
+                type="radio"
+                name="vectorMode"
+                value="HNSW"
+                th:checked="${vectorMode == 'HNSW'}"
+              />
+              HNSW</label
+            >
+            <label
+              ><input
+                type="radio"
+                name="vectorMode"
+                value="IVF"
+                th:checked="${vectorMode == 'IVF'}"
+              />
+              IVF</label
+            >
+          </div>
         </div>
         <div class="option-group">
-            <label class="checkbox-label">
-                <input type="checkbox" name="enableBm25" value="true" th:checked="${enableBm25}">
-                Enable BM25 (Full Text)
-            </label>
-            <a th:href="@{/}" class="btn btn-primary">▶ UPDATE EMBEDDINGS</a>
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="enableBm25"
+              value="true"
+              th:checked="${enableBm25}"
+            />
+            Enable BM25 (Full Text)
+          </label>
+          <a th:href="@{/}" class="btn btn-primary">▶ UPDATE EMBEDDINGS</a>
         </div>
         <div class="slider-row">
-            <label class="label">Hybrid Search Balance (Keyword vs Semantic)</label>
-            <div class="slider-wrap">
-                <span class="slider-label">Keyword (<span id="kwVal" th:text="${#numbers.formatDecimal(keywordWeight, 1, 2)}">0.5</span>)</span>
-                <input type="range" name="keywordWeight" id="keywordWeight" min="0" max="1" step="0.05" th:value="${keywordWeight}">
-                <span class="slider-label right">Semantic (<span id="semVal" th:text="${#numbers.formatDecimal(semanticWeight, 1, 2)}">0.5</span>)</span>
-            </div>
+          <label class="label"
+            >Hybrid Search Balance (Keyword vs Semantic)</label
+          >
+          <div class="slider-wrap">
+            <span class="slider-label"
+              >Keyword (<span
+                id="kwVal"
+                th:text="${#numbers.formatDecimal(keywordWeight, 1, 2)}"
+                >0.5</span
+              >)</span
+            >
+            <input
+              type="range"
+              name="keywordWeight"
+              id="keywordWeight"
+              min="0"
+              max="1"
+              step="0.05"
+              th:value="${keywordWeight}"
+            />
+            <span class="slider-label right"
+              >Semantic (<span
+                id="semVal"
+                th:text="${#numbers.formatDecimal(semanticWeight, 1, 2)}"
+                >0.5</span
+              >)</span
+            >
+          </div>
         </div>
-    </div>
-    <input type="hidden" name="limit" value="20">
-</form>
+      </div>
+      <input type="hidden" name="limit" value="20" />
+      <script>
+        (function() {
+          var input = document.getElementById('q');
+          var container = document.getElementById('hashtags');
+          if (!input || !container) return;
+          function escapeRegex(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          }
+          container.addEventListener('click', function(e) {
+            var tag = e.target.closest('.hashtag');
+            if (!tag) return;
+            var kw = tag.getAttribute('data-keyword');
+            if (!kw) return;
+            var val = input.value || '';
+            var re = new RegExp('\\s*' + escapeRegex(kw) + '\\s*');
+            var next = val.replace(re, ' ').replace(/\s+/g, ' ').trim();
+            input.value = next;
+            tag.remove();
+            if (container.querySelectorAll('.hashtag').length === 0) container.style.display = 'none';
+          });
+        })();
+      </script>
+    </form>
 
-<div class="section">
-    <div class="section-header" onclick="toggleSection(this)">
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
         <span th:text="${sqlSectionLabel}">Generated SQL</span>
         <span class="caret">▲</span>
+      </div>
+      <div class="section-body" id="sqlBody">
+        <span th:text="${generatedSql}">--</span>
+      </div>
     </div>
-    <div class="section-body" id="sqlBody"><span th:text="${generatedSql}">--</span></div>
-</div>
 
-<div class="section">
-    <div class="section-header" onclick="toggleSection(this)">
+    <div class="section">
+      <div class="section-header" onclick="toggleSection(this)">
         <span th:text="${explanationSectionLabel}">Query Explanation</span>
         <span class="caret">▲</span>
+      </div>
+      <div class="section-body" id="queryExplanationBody">
+        <span th:text="${queryExplanation}">[]</span>
+      </div>
     </div>
-    <div class="section-body" id="queryExplanationBody"><span th:text="${queryExplanation}">[]</span></div>
-</div>
 
-<div class="result-list" th:if="${!#lists.isEmpty(results)}">
-    <article class="result-card" th:each="r : ${results}">
+    <div class="result-list" th:if="${!#lists.isEmpty(results)}">
+      <article class="result-card" th:each="r : ${results}">
         <div class="result-card-header">
-            <h2 class="result-card-title" th:text="${r.title}">제목</h2>
-            <span class="similarity-badge">Similarity: <span th:text="${r.similarityPercent != null and !T(java.lang.Double).isNaN(r.similarityPercent) ? #numbers.formatDecimal(r.similarityPercent, 1, 1) : '0'}">0</span>%</span>
+          <h2 class="result-card-title" th:text="${r.title}">제목</h2>
+          <span class="similarity-badge"
+            >Similarity:
+            <span
+              th:text="${r.similarityPercent != null and !T(java.lang.Double).isNaN(r.similarityPercent) ? #numbers.formatDecimal(r.similarityPercent, 1, 1) : '0'}"
+              >0</span
+            >%</span
+          >
         </div>
-        <div class="result-card-content" th:text="${r.contentSnippet}">내용</div>
-    </article>
-</div>
+        <div class="result-card-content" th:text="${r.contentSnippet}">
+          내용
+        </div>
+      </article>
+    </div>
 
-<script th:inline="javascript">
-(function(){
-    function toggleSection(header) {
-        var body = header.nextElementSibling;
-        var caret = header.querySelector('.caret');
-        if (body.style.display === 'none') {
-            body.style.display = 'block';
-            if (caret) caret.textContent = '▲';
-        } else {
-            body.style.display = 'none';
-            if (caret) caret.textContent = '▶';
+    <script th:inline="javascript">
+      (function () {
+        function toggleSection(header) {
+          var body = header.nextElementSibling;
+          var caret = header.querySelector(".caret");
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            if (caret) caret.textContent = "▲";
+          } else {
+            body.style.display = "none";
+            if (caret) caret.textContent = "▶";
+          }
         }
-    }
-    window.toggleSection = toggleSection;
+        window.toggleSection = toggleSection;
 
-    var slider = document.getElementById('keywordWeight');
-    if (slider) {
-        slider.addEventListener('input', function(){
+        var slider = document.getElementById("keywordWeight");
+        if (slider) {
+          slider.addEventListener("input", function () {
             var v = parseFloat(this.value);
-            var kw = document.getElementById('kwVal');
-            var sem = document.getElementById('semVal');
+            var kw = document.getElementById("kwVal");
+            var sem = document.getElementById("semVal");
             if (kw) kw.textContent = v.toFixed(2);
             if (sem) sem.textContent = (1 - v).toFixed(2);
-        });
-    }
+          });
+        }
 
-    var explainEl = document.getElementById('queryExplanationBody');
-    if (explainEl) {
-        var raw = explainEl.textContent || '[]';
-        try {
+        var explainEl = document.getElementById("queryExplanationBody");
+        if (explainEl) {
+          var raw = explainEl.textContent || "[]";
+          try {
             var parsed = JSON.parse(raw);
             explainEl.textContent = JSON.stringify(parsed, null, 2);
-        } catch (_) {}
-    }
-})();
-</script>
-</body>
+          } catch (_) {}
+        }
+      })();
+    </script>
+  </body>
 </html>

@@ -21,6 +21,7 @@ class SearchController(
         model: Model,
     ): String {
         model.addAttribute("query", q ?: "")
+        model.addAttribute("searchKeywords", toSearchKeywords(q))
         if (!q.isNullOrBlank()) {
             val results = try {
                 searchService.search(q.trim(), limit.coerceIn(1, 100))
@@ -33,5 +34,10 @@ class SearchController(
             model.addAttribute("results", emptyList<SearchService.SearchResultDto>())
         }
         return "search"
+    }
+
+    private fun toSearchKeywords(q: String?): List<String> {
+        if (q.isNullOrBlank()) return emptyList()
+        return q.trim().split(Regex("\\s+")).map { it.trim() }.filter { it.isNotBlank() }.distinct()
     }
 }

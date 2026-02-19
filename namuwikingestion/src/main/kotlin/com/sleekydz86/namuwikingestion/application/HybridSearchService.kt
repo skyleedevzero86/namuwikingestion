@@ -5,10 +5,14 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.sleekydz86.namuwikingestion.domain.port.EmbeddingClient
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.NamuwikiDocRepository
 import com.sleekydz86.namuwikingestion.infrastructure.persistence.SearchUiConfigRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.springframework.stereotype.Service
 
 private val logger = KotlinLogging.logger {}
+private const val MAX_QUERY_LENGTH_FOR_EMBED = 512
 
 @Service
 class HybridSearchService(
@@ -34,21 +38,34 @@ class HybridSearchService(
 
         val useVector = vectorMode != "NONE"
         val vectorLimit = limit.coerceAtLeast(10).coerceAtMost(50)
-        val queryVector = if (useVector) embeddingClient.embedBatch(listOf(q)).singleOrNull() else null
-        var vectorExplainJson = "[]"
-        val vectorRows = if (queryVector != null) {
-            vectorExplainJson = try {
-                docRepository.explainVectorSearch(queryVector, vectorLimit)
-            } catch (e: Exception) {
-                logger.warn(e) { "explainVectorSearch 실패, []로 대체" }
-                "[]"
-            }
-            docRepository.searchByVector(queryVector, 50)
-        } else emptyList()
+        val queryForEmbed = if (q.length > MAX_QUERY_LENGTH_FOR_EMBED) q.take(MAX_QUERY_LENGTH_FOR_EMBED) else q
+        val queryVector = if (useVector) embeddingClient.embedBatch(listOf(queryForEmbed)).singleOrNull() else null
 
-        val textRows = if (enableBm25) {
-            docRepository.searchByFullText(q, 50)
-        } else emptyList()
+        val (vectorExplainJson, vectorRows, textRows) = runBlocking {
+            val explainVec = async(Dispatchers.IO) {
+                if (queryVector == null) "[]"
+                else try {
+                    docRepository.explainVectorSearch(queryVector, vectorLimit)
+                } catch (e: Exception) {
+                    logger.warn(e) { "explainVectorSearch 실패, []로 대체" }
+                    "[]"
+                }
+            }
+            val vecRows = async(Dispatchers.IO) {
+                if (queryVector == null) emptyList()
+                else docRepository.searchByVector(queryVector, 50)
+            }
+            val txtRows = async(Dispatchers.IO) {
+                if (!enableBm25) emptyList()
+                else try {
+                    docRepository.searchByFullText(q, 50)
+                } catch (e: Exception) {
+                    logger.warn(e) { "searchByFullText 실패, 빈 목록" }
+                    emptyList()
+                }
+            }
+            Triple(explainVec.await(), vecRows.await(), txtRows.await())
+        }
 
         val semanticWeight = 1.0 - keywordWeight.coerceIn(0.0, 1.0)
         val kwWeight = keywordWeight.coerceIn(0.0, 1.0)
